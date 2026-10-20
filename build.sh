@@ -47,8 +47,10 @@ if (( DEV )); then
     EXECUTABLE="VorssaintDeveloper"
     APP_BUNDLE_ID="com.vorssaint.utils.dev"
     BUILD_VARIANT_FLAGS=(-D VORSSAINT_DEVELOPMENT)
-    APP_OPTIMIZATION_FLAGS=(-Onone)
-    BUILD_CONFIGURATION="debug"
+    # custom: the Developer build is the daily driver here, so it is optimized
+    # like a release; the mixer and monitors run all day.
+    APP_OPTIMIZATION_FLAGS=(-O)
+    BUILD_CONFIGURATION="release"
 else
     APP_NAME="Vorssaint"
     EXECUTABLE="Vorssaint"
