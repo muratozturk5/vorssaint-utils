@@ -652,6 +652,11 @@ enum ScreenshotFeatureTests {
         suite.expect(ScreenshotSupport.isClick(from: CGPoint(x: 5, y: 5), to: CGPoint(x: 7, y: 8))
                 && !ScreenshotSupport.isClick(from: .zero, to: CGPoint(x: 12, y: 0)),
                "a tiny drag is a click, a real drag is not")
+        suite.expect(ScreenshotSupport.capturePointer(windowOnly: true, overControl: false) == .camera
+                && ScreenshotSupport.capturePointer(windowOnly: false, overControl: false) == .crosshair
+                && ScreenshotSupport.capturePointer(windowOnly: true, overControl: true) == .arrow
+                && ScreenshotSupport.capturePointer(windowOnly: false, overControl: true) == .arrow,
+               "picking a window shows a camera, an area the crosshair, the controls the arrow")
 
         let penSquare = [CGPoint(x: 100, y: 100), CGPoint(x: 180, y: 100),
                          CGPoint(x: 180, y: 180), CGPoint(x: 100, y: 180),
