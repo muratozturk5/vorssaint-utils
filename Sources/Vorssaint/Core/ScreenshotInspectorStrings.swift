@@ -20,6 +20,8 @@ struct ScreenshotInspectorStrings {
     let resizeHeight: String
     let resizeApply: String
     let resizeCaption: String
+    let overlayOpacityLabel: String
+    let comparisonGIF: String
 }
 
 extension FeatureStrings {
@@ -60,7 +62,9 @@ extension ScreenshotInspectorStrings {
         resizeWidth: "Width",
         resizeHeight: "Height",
         resizeApply: "Resize",
-        resizeCaption: "Marks become part of the picture. Undo brings them back."
+        resizeCaption: "Marks become part of the picture. Undo brings them back.",
+        overlayOpacityLabel: "Opacity",
+        comparisonGIF: "Save before and after GIF"
     )
 
     static let ptBR = ScreenshotInspectorStrings(
@@ -78,7 +82,9 @@ extension ScreenshotInspectorStrings {
         resizeWidth: "Largura",
         resizeHeight: "Altura",
         resizeApply: "Redimensionar",
-        resizeCaption: "As marcações passam a fazer parte da imagem. Desfazer as traz de volta."
+        resizeCaption: "As marcações passam a fazer parte da imagem. Desfazer as traz de volta.",
+        overlayOpacityLabel: "Opacidade",
+        comparisonGIF: "Salvar GIF de antes e depois"
     )
 
     static let tr = ScreenshotInspectorStrings(
@@ -96,7 +102,9 @@ extension ScreenshotInspectorStrings {
         resizeWidth: "Genişlik",
         resizeHeight: "Yükseklik",
         resizeApply: "Boyutlandır",
-        resizeCaption: "Notlar görselin parçası olur. Geri al onları geri getirir."
+        resizeCaption: "Notlar görselin parçası olur. Geri al onları geri getirir.",
+        overlayOpacityLabel: "Opaklık",
+        comparisonGIF: "Önce ve sonra GIF’ini kaydet"
     )
 
     static let ru = ScreenshotInspectorStrings(
@@ -114,7 +122,9 @@ extension ScreenshotInspectorStrings {
         resizeWidth: "Ширина",
         resizeHeight: "Высота",
         resizeApply: "Изменить размер",
-        resizeCaption: "Пометки станут частью изображения. Отмена вернёт их."
+        resizeCaption: "Пометки станут частью изображения. Отмена вернёт их.",
+        overlayOpacityLabel: "Непрозрачность",
+        comparisonGIF: "Сохранить GIF до и после"
     )
 
     static let es = ScreenshotInspectorStrings(
@@ -132,7 +142,9 @@ extension ScreenshotInspectorStrings {
         resizeWidth: "Ancho",
         resizeHeight: "Alto",
         resizeApply: "Redimensionar",
-        resizeCaption: "Las marcas pasan a formar parte de la imagen. Deshacer las recupera."
+        resizeCaption: "Las marcas pasan a formar parte de la imagen. Deshacer las recupera.",
+        overlayOpacityLabel: "Opacidad",
+        comparisonGIF: "Guardar GIF de antes y después"
     )
 
     static let sk = ScreenshotInspectorStrings(
@@ -150,7 +162,9 @@ extension ScreenshotInspectorStrings {
         resizeWidth: "Šírka",
         resizeHeight: "Výška",
         resizeApply: "Zmeniť veľkosť",
-        resizeCaption: "Značky sa stanú súčasťou obrázka. Späť ich vráti."
+        resizeCaption: "Značky sa stanú súčasťou obrázka. Späť ich vráti.",
+        overlayOpacityLabel: "Nepriehľadnosť",
+        comparisonGIF: "Uložiť GIF pred a po"
     )
 
     static let de = ScreenshotInspectorStrings(
@@ -168,7 +182,9 @@ extension ScreenshotInspectorStrings {
         resizeWidth: "Breite",
         resizeHeight: "Höhe",
         resizeApply: "Größe ändern",
-        resizeCaption: "Markierungen werden Teil des Bilds. Widerrufen holt sie zurück."
+        resizeCaption: "Markierungen werden Teil des Bilds. Widerrufen holt sie zurück.",
+        overlayOpacityLabel: "Deckkraft",
+        comparisonGIF: "Vorher-nachher-GIF sichern"
     )
 
     static let fr = ScreenshotInspectorStrings(
@@ -186,7 +202,9 @@ extension ScreenshotInspectorStrings {
         resizeWidth: "Largeur",
         resizeHeight: "Hauteur",
         resizeApply: "Redimensionner",
-        resizeCaption: "Les annotations font partie de l’image. Annuler les rétablit."
+        resizeCaption: "Les annotations font partie de l’image. Annuler les rétablit.",
+        overlayOpacityLabel: "Opacité",
+        comparisonGIF: "Enregistrer un GIF avant et après"
     )
 
     static let it = ScreenshotInspectorStrings(
@@ -204,7 +222,9 @@ extension ScreenshotInspectorStrings {
         resizeWidth: "Larghezza",
         resizeHeight: "Altezza",
         resizeApply: "Ridimensiona",
-        resizeCaption: "Le annotazioni diventano parte dell’immagine. Annulla le riporta indietro."
+        resizeCaption: "Le annotazioni diventano parte dell’immagine. Annulla le riporta indietro.",
+        overlayOpacityLabel: "Opacità",
+        comparisonGIF: "Salva GIF prima e dopo"
     )
 
     static let ja = ScreenshotInspectorStrings(
@@ -222,7 +242,9 @@ extension ScreenshotInspectorStrings {
         resizeWidth: "幅",
         resizeHeight: "高さ",
         resizeApply: "サイズを変更",
-        resizeCaption: "注釈は画像の一部になります。取り消すと元に戻ります。"
+        resizeCaption: "注釈は画像の一部になります。取り消すと元に戻ります。",
+        overlayOpacityLabel: "不透明度",
+        comparisonGIF: "ビフォーアフター GIF を保存"
     )
 
     static let ko = ScreenshotInspectorStrings(
@@ -240,7 +262,9 @@ extension ScreenshotInspectorStrings {
         resizeWidth: "너비",
         resizeHeight: "높이",
         resizeApply: "크기 조절",
-        resizeCaption: "주석이 이미지의 일부가 됩니다. 실행 취소하면 되돌아옵니다."
+        resizeCaption: "주석이 이미지의 일부가 됩니다. 실행 취소하면 되돌아옵니다.",
+        overlayOpacityLabel: "불투명도",
+        comparisonGIF: "전후 비교 GIF 저장"
     )
 
     static let zhHans = ScreenshotInspectorStrings(
@@ -258,7 +282,9 @@ extension ScreenshotInspectorStrings {
         resizeWidth: "宽度",
         resizeHeight: "高度",
         resizeApply: "调整大小",
-        resizeCaption: "标注将合并到图片中。撤销可恢复。"
+        resizeCaption: "标注将合并到图片中。撤销可恢复。",
+        overlayOpacityLabel: "不透明度",
+        comparisonGIF: "存储前后对比 GIF"
     )
 
     static let zhTW = ScreenshotInspectorStrings(
@@ -276,7 +302,9 @@ extension ScreenshotInspectorStrings {
         resizeWidth: "寬度",
         resizeHeight: "高度",
         resizeApply: "調整大小",
-        resizeCaption: "標註會合併到圖片中。還原可將其恢復。"
+        resizeCaption: "標註會合併到圖片中。還原可將其恢復。",
+        overlayOpacityLabel: "不透明度",
+        comparisonGIF: "儲存前後對比 GIF"
     )
 
     static let zhHK = ScreenshotInspectorStrings(
@@ -294,7 +322,9 @@ extension ScreenshotInspectorStrings {
         resizeWidth: "闊度",
         resizeHeight: "高度",
         resizeApply: "調整大小",
-        resizeCaption: "標註會合併到圖片中。還原可將其恢復。"
+        resizeCaption: "標註會合併到圖片中。還原可將其恢復。",
+        overlayOpacityLabel: "不透明度",
+        comparisonGIF: "儲存前後對比 GIF"
     )
 
     static let uk = ScreenshotInspectorStrings(
@@ -312,6 +342,8 @@ extension ScreenshotInspectorStrings {
         resizeWidth: "Ширина",
         resizeHeight: "Висота",
         resizeApply: "Змінити розмір",
-        resizeCaption: "Позначки стануть частиною зображення. Скасування поверне їх."
+        resizeCaption: "Позначки стануть частиною зображення. Скасування поверне їх.",
+        overlayOpacityLabel: "Непрозорість",
+        comparisonGIF: "Зберегти GIF до і після"
     )
 }

@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Vorssaint
 
 import AppKit
+import ImageIO
 
 /// The screenshot editor's inspection rules, on synthetic pixels.
 enum ScreenshotInspectionTests {
@@ -56,6 +57,7 @@ enum ScreenshotInspectionTests {
         tools(suite)
         rendering(suite)
         resizing(suite)
+        comparison(suite)
         preferencesAndStrings(suite)
     }
 
@@ -300,6 +302,43 @@ enum ScreenshotInspectionTests {
         suite.expect(smaller?.width == 20 && smaller?.height == 10
                      && smaller.map { pixel($0, 2, 5).red < 40 && pixel($0, 17, 5).red > 215 } == true,
                      "resampling keeps what is where")
+    }
+
+    // MARK: - Comparison
+
+    static func comparison(_ suite: TestSuite) {
+        let overlay = image(width: 10, height: 10) { _, _ in black }
+        var pasted = ScreenshotSupport.Annotation(tool: .image, rect: CGRect(x: 0, y: 0, width: 10, height: 10),
+                                                  imageAsset: ScreenshotSupport.ImageAsset(image: overlay))
+        suite.expect(pasted.opacity == 1, "a pasted image starts opaque")
+        pasted.opacity = 0.5
+        let blended = pixel(rendered(image(width: 10, height: 10) { _, _ in white }, [pasted]), 5, 5)
+        suite.expect((110...145).contains(Int(blended.red)),
+                     "a half see-through pasted image shows the capture through it")
+
+        let arrow = ScreenshotSupport.Annotation(tool: .arrow, points: [.zero, CGPoint(x: 9, y: 9)])
+        suite.expect(Output.comparisonFrames([arrow]) == nil, "there is nothing to compare without a pasted image")
+        pasted.opacity = 0.4
+        let frames = Output.comparisonFrames([arrow, pasted])
+        suite.expect(frames?.before == [arrow] && frames?.after.count == 2
+                     && frames?.after.last?.opacity == 1 && frames?.after.first == arrow,
+                     "before leaves the pasted image out and after shows it at full strength")
+
+        let first = image(width: 6, height: 4) { _, _ in white }
+        let second = image(width: 6, height: 4) { _, _ in black }
+        guard let data = Output.gifData(frames: [first, second]),
+              let source = CGImageSourceCreateWithData(data as CFData, nil) else {
+            suite.expect(false, "the comparison encodes as a GIF")
+            return
+        }
+        let container = CGImageSourceCopyProperties(source, nil) as? [CFString: Any]
+        let loop = (container?[kCGImagePropertyGIFDictionary] as? [CFString: Any])?[kCGImagePropertyGIFLoopCount]
+        let frame = CGImageSourceCopyPropertiesAtIndex(source, 1, nil) as? [CFString: Any]
+        let delay = (frame?[kCGImagePropertyGIFDictionary] as? [CFString: Any])?[kCGImagePropertyGIFDelayTime]
+        suite.expect(CGImageSourceGetCount(source) == 2 && (loop as? NSNumber)?.intValue == 0
+                     && abs(((delay as? NSNumber)?.doubleValue ?? 0) - Output.comparisonFrameDelay) < 0.01,
+                     "the comparison GIF has both frames, loops and holds each one")
+        suite.expect(Output.gifData(frames: []) == nil, "no frames make no GIF")
     }
 
     // MARK: - Preferences and strings

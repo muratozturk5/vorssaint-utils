@@ -1889,6 +1889,9 @@ enum ScreenshotSupport {
         var renderReferenceSize: CGSize?
         /// How many times a magnifier enlarges what is under it.
         var magnification: Int = ScreenshotSupport.defaultMagnification
+        /// How opaque a pasted image draws: see through to line it up with
+        /// what is below, or to show both in a comparison.
+        var opacity: CGFloat = 1
 
         init(id: UUID = UUID(),
              tool: Tool,

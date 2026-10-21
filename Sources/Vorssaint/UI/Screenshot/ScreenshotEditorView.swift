@@ -1245,6 +1245,11 @@ struct ScreenshotEditorView: View {
                 magnificationControl
                 Divider().frame(height: 16)
             }
+            if let opacity = model.selectedImageOpacity {
+                imageOpacityControl(opacity)
+                comparisonButton
+                Divider().frame(height: 16)
+            }
             if model.tool == .ruler {
                 ScreenshotMeasureUnitControl(inspector: model.inspector,
                                              label: inspectorStrings.measureUnitLabel)
@@ -1368,6 +1373,54 @@ struct ScreenshotEditorView: View {
         .fixedSize()
         .screenshotSafeHelp(inspectorStrings.magnificationLabel)
         .accessibilityLabel(inspectorStrings.magnificationLabel)
+    }
+
+    /// How see-through the picked pasted image is, to line it up with the
+    /// capture below or to compare the two. One drag is one undo step.
+    private func imageOpacityControl(_ opacity: CGFloat) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: "circle.lefthalf.filled")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+            Slider(value: Binding(get: { Double(opacity) },
+                                  set: { model.setSelectedImageOpacity(CGFloat($0)) }),
+                   in: 0.1...1,
+                   onEditingChanged: { editing in
+                       if editing { model.beginImageOpacityChange() }
+                   })
+                .controlSize(.mini)
+                .frame(width: 84)
+            Text(Double(opacity).formatted(.percent.precision(.fractionLength(0))))
+                .font(.system(size: 11, weight: .medium).monospacedDigit())
+                .foregroundStyle(.secondary)
+                .frame(minWidth: 34, alignment: .trailing)
+        }
+        .frame(height: 24)
+        .screenshotSafeHelp(inspectorStrings.overlayOpacityLabel)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(inspectorStrings.overlayOpacityLabel)
+        .accessibilityValue(Double(opacity).formatted(.percent.precision(.fractionLength(0))))
+    }
+
+    /// Before and after: the capture alone, then with its pasted images.
+    private var comparisonButton: some View {
+        Button {
+            commitEditingTextIfNeeded()
+            controller.saveComparisonGIF()
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "photo.stack")
+                    .font(.system(size: 12, weight: .medium))
+                Text("GIF")
+                    .font(.system(size: 11.5, weight: .semibold))
+            }
+            .padding(.horizontal, 7)
+            .frame(height: 24)
+        }
+        .buttonStyle(.borderless)
+        .fixedSize()
+        .screenshotSafeHelp(inspectorStrings.comparisonGIF)
+        .accessibilityLabel(inspectorStrings.comparisonGIF)
     }
 
     private var cropBar: some View {

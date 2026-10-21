@@ -1345,12 +1345,13 @@ final class ScreenshotEditorModel: ObservableObject, BackdropEditing {
 
     // MARK: - Output
 
-    func exportImage(withBackdrop: Bool = true) -> ScreenshotRenderer.Export? {
+    func exportImage(withBackdrop: Bool = true,
+                     annotations marks: [ScreenshotSupport.Annotation]? = nil) -> ScreenshotRenderer.Export? {
         ensureBlurSamplesForAnnotations()
         let downscale = UserDefaults.standard.bool(forKey: DefaultsKey.screenshotDownscale)
         return ScreenshotRenderer.renderExport(
             baseImage: baseImage,
-            annotations: annotations,
+            annotations: marks ?? annotations,
             blurSources: blurSources,
             scale: scale,
             annotationShadowsEnabled: annotationShadowsEnabled,
@@ -1464,6 +1465,38 @@ extension ScreenshotEditorModel {
         recognizeText()
         recognizeQRCodes()
         return true
+    }
+
+    /// The picked pasted image's see-through, which the footer controls.
+    var selectedImageOpacity: CGFloat? {
+        guard let selectedID,
+              let selected = annotations.first(where: { $0.id == selectedID }),
+              selected.tool == .image
+        else { return nil }
+        return selected.opacity
+    }
+
+    /// One undo step for a whole slider drag.
+    func beginImageOpacityChange() {
+        guard selectedImageOpacity != nil else { return }
+        registerUndo()
+    }
+
+    func setSelectedImageOpacity(_ opacity: CGFloat) {
+        guard let selectedID,
+              let index = annotations.firstIndex(where: { $0.id == selectedID }),
+              annotations[index].tool == .image
+        else { return }
+        annotations[index].opacity = min(max(opacity, 0.1), 1)
+        refreshDirtyState()
+    }
+
+    /// The capture without its pasted images, then with them, as a looping GIF.
+    func comparisonGIFData() -> Data? {
+        guard let frames = ScreenshotOutputSupport.comparisonFrames(annotations) else { return nil }
+        let images = [frames.before, frames.after].compactMap { exportImage(annotations: $0)?.image }
+        guard images.count == 2 else { return nil }
+        return ScreenshotOutputSupport.gifData(frames: images)
     }
 }
 
@@ -1961,6 +1994,27 @@ final class ScreenshotEditorController: NSObject, NSWindowDelegate {
         model.markExported()
         QuickToolHUD.show(icon: "tray.full", message: L10n.shared.s.shelfName)
         window?.close()
+    }
+
+    /// Saves the capture without and then with its pasted images as a
+    /// looping GIF beside the screenshots, and keeps the editor open.
+    func saveComparisonGIF() {
+        guard let data = model.comparisonGIFData() else {
+            NSSound.beep()
+            return
+        }
+        let (url, consumedNumber) = ScreenshotService.saveDestination(strings: strings, fileExtension: "gif")
+        do {
+            try data.write(to: url, options: .atomic)
+            QuickToolHUD.show(icon: "photo.stack",
+                              message: String(format: strings.savedHUDFormat,
+                                              url.deletingLastPathComponent().lastPathComponent))
+        } catch {
+            if let consumedNumber {
+                ScreenshotService.rewindNumberSequence(toReuse: consumedNumber)
+            }
+            NSSound.beep()
+        }
     }
 
     /// Pinning snapshots the current export and leaves the editor open.
