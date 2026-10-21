@@ -1082,6 +1082,9 @@ private struct QuickEntryView: View, Equatable {
         Button(text.previewLabel) {
             history.previewQuickEntry(entry)
         }
+        Button(text.pasteStackAdd) {
+            history.addToPasteStack(entry)
+        }
         Divider()
         Button(entry.isPinned ? text.unpin : text.pin) {
             history.togglePin(entry)
@@ -1307,8 +1310,117 @@ private struct LinkCardBody: View {
     }
 }
 
-/// How a card looks: the source app, the header color taken from its icon,
-/// and the kind's name.
+/// The panel a paste stack shows while it runs without the island: the card
+/// Command-V pastes next, on top of the ones after it, how far the stack has
+/// come, and a way to stop.
+struct ClipboardPasteStackView: View {
+    @ObservedObject private var l10n = L10n.shared
+    @ObservedObject private var history = ClipboardHistoryService.shared
+
+    private var text: ClipboardFeatureStrings { FeatureStrings.clipboard(l10n.language) }
+
+    var body: some View {
+        let entries = history.pasteStackEntries
+        let remaining = entries.count
+        let total = max(history.pasteStackTotal, remaining)
+        HStack(spacing: 14) {
+            ZStack(alignment: .topLeading) {
+                // The cards after the next one peek out behind it.
+                ForEach(Array(entries.prefix(3).enumerated().reversed()), id: \.element.id) { index, entry in
+                    PasteStackMiniCard(entry: entry, isFront: index == 0)
+                        .offset(x: CGFloat(index) * 5, y: CGFloat(index) * -5)
+                        .opacity(index == 0 ? 1 : 0.75 - Double(index) * 0.2)
+                        .transition(.asymmetric(insertion: .opacity,
+                                                removal: .move(edge: .top).combined(with: .opacity)))
+                }
+            }
+            .frame(width: 118, height: 76, alignment: .bottomLeading)
+            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: entries.map(\.id))
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(systemName: NotchPasteStackSupport.symbol)
+                        .foregroundStyle(Color(nsColor: .systemBlue))
+                    Text(text.pasteStackTitle)
+                        .font(.system(size: 13, weight: .semibold))
+                }
+                Text(String(format: text.pasteStackRemainingFormat, remaining))
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .contentTransition(.numericText(countsDown: true))
+                ProgressView(value: Double(total - remaining), total: Double(max(total, 1)))
+                    .progressViewStyle(.linear)
+                    .tint(Color(nsColor: .systemBlue))
+                    .animation(.easeOut(duration: 0.25), value: remaining)
+            }
+            Button {
+                history.endPasteStack()
+            } label: {
+                Text(text.pasteStackEnd)
+                    .font(.system(size: 12, weight: .semibold))
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Capsule(style: .continuous).fill(Color.primary.opacity(0.1)))
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(width: ClipboardPasteStackView.size.width, height: ClipboardPasteStackView.size.height)
+        .background(HUDBackdrop(cornerRadius: 22))
+        .help(text.pasteStackTitle)
+    }
+
+    static let size = CGSize(width: 420, height: 104)
+}
+
+/// One card of a paste stack, drawn small: its header in the source app's
+/// color and the start of its content.
+private struct PasteStackMiniCard: View {
+    let entry: ClipboardHistoryEntry
+    let isFront: Bool
+    @ObservedObject private var l10n = L10n.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 4) {
+                Text(ClipboardCardAppearance.kindTitle(for: entry, language: l10n.language))
+                    .font(.system(size: 9.5, weight: .bold))
+                    .lineLimit(1)
+                Spacer(minLength: 2)
+                if let icon = ClipboardCardAppearance.sourceApp(for: entry)?.icon {
+                    Image(nsImage: icon).resizable().frame(width: 16, height: 16)
+                }
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 6)
+            .frame(height: 22)
+            .background(ClipboardCardAppearance.headerColor(for: entry))
+            Group {
+                if entry.kind == .image, let name = entry.imageFile {
+                    ClipboardThumbnailImage(source: .stored(name: name), aspectRatio: entry.imageAspectRatio)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .padding(4)
+                } else {
+                    Text(entry.preview)
+                        .font(.system(size: 9))
+                        .lineLimit(3)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        .padding(5)
+                }
+            }
+        }
+        .frame(width: 104, height: 66)
+        .background(Color(nsColor: .textBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .strokeBorder(Color.primary.opacity(isFront ? 0.12 : 0.06), lineWidth: 0.5))
+        .shadow(color: .black.opacity(isFront ? 0.2 : 0.1), radius: isFront ? 4 : 2, y: 1)
+    }
+}
+
+/// How a card looks, shared by the shelf and the paste stack: the source
+/// app, the header color taken from its icon, and the kind's name.
 enum ClipboardCardAppearance {
     /// Looked up once per app. An app removed since the copy has nothing to
     /// show, and the card keeps the kind's symbol. A miss is not kept, so an

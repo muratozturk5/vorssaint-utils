@@ -584,6 +584,9 @@ final class ClipboardHistoryService: ObservableObject {
     /// copied before. A stale entry leaves the clipboard untouched and pastes
     /// nothing at all.
     func copyQuickEntry(_ entry: ClipboardHistoryEntry) {
+        // A paste from the window sends its own Command-V, which a running
+        // paste stack would take for its turn.
+        endPasteStack()
         let target = pasteTargetApp
         hideHistoryWindow()
         pasteTargetApp = nil
@@ -1666,6 +1669,104 @@ final class ClipboardHistoryService: ObservableObject {
         // The shelf shows its first card chosen until a search starts: Space
         // then types instead of previewing.
         quickSelectionIsVisible = quickLayout == .cards && quickQuery.isEmpty
+    }
+
+    // MARK: - Paste stack
+
+    /// What is left of a paste stack, in the order it pastes: the cards the
+    /// user added, one on the clipboard at a time, the next taking its place
+    /// after each Command-V.
+    @Published private(set) var pasteStackIDs: [UUID] = []
+    /// How many cards the stack has held, for its progress.
+    @Published private(set) var pasteStackTotal = 0
+    private var pasteStackMonitor: Any?
+    private var pasteStackPanel: NSPanel?
+
+    var pasteStackEntries: [ClipboardHistoryEntry] {
+        pasteStackIDs.compactMap { id in entries.first { $0.id == id } }
+    }
+
+    /// Adds a card to the end of the stack. The first one starts it: on the
+    /// clipboard at once, with the stack's panel showing what is left.
+    /// Watching for Command-V in other apps needs Accessibility, which
+    /// pasting from the history already asks for.
+    func addToPasteStack(_ entry: ClipboardHistoryEntry) {
+        guard !pasteStackIDs.contains(entry.id) else { return }
+        if !pasteStackIDs.isEmpty {
+            pasteStackIDs.append(entry.id)
+            pasteStackTotal += 1
+            return
+        }
+        guard AXIsProcessTrusted() else {
+            Permissions.shared.requestAccessibility()
+            return
+        }
+        pasteStackIDs = [entry.id]
+        pasteStackTotal = 1
+        copyNextOfPasteStack()
+        showPasteStackPanel()
+        pasteStackMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard event.modifierFlags.intersection([.command, .option, .control, .shift]) == [.command],
+                  event.charactersIgnoringModifiers?.lowercased() == "v" else { return }
+            // The app pasting reads the clipboard first; the next entry waits.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { self?.advancePasteStack() }
+        }
+    }
+
+    func endPasteStack() {
+        pasteStackIDs = []
+        pasteStackTotal = 0
+        if let pasteStackMonitor {
+            NSEvent.removeMonitor(pasteStackMonitor)
+            self.pasteStackMonitor = nil
+        }
+        pasteStackPanel?.orderOut(nil)
+    }
+
+    private func copyNextOfPasteStack() {
+        guard let entry = pasteStackEntries.first else {
+            endPasteStack()
+            return
+        }
+        copy(entry) { [weak self] copied in
+            guard !copied else { return }
+            NSSound.beep()
+            self?.endPasteStack()
+        }
+    }
+
+    private func advancePasteStack() {
+        guard !pasteStackIDs.isEmpty else { return }
+        pasteStackIDs.removeFirst()
+        if pasteStackEntries.isEmpty {
+            endPasteStack()
+        } else {
+            copyNextOfPasteStack()
+        }
+    }
+
+    /// Without the island the stack shows its own panel; with it, the closed
+    /// island carries the stack instead.
+    private func showPasteStackPanel() {
+        guard !NotchSupport.isEnabled() else { return }
+        let panel = pasteStackPanel ?? {
+            let made = OverlayPanel(contentRect: .zero, styleMask: [.borderless, .nonactivatingPanel],
+                                    backing: .buffered, defer: false)
+            made.level = .statusBar
+            made.isOpaque = false
+            made.backgroundColor = .clear
+            made.hasShadow = true
+            made.hidesOnDeactivate = false
+            made.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
+            made.contentView = NSHostingView(rootView: ClipboardPasteStackView())
+            pasteStackPanel = made
+            return made
+        }()
+        let screen = NSScreen.pointerVisibleFrame
+        let size = ClipboardPasteStackView.size
+        panel.setFrame(NSRect(x: screen.midX - size.width / 2, y: screen.minY + 24,
+                              width: size.width, height: size.height), display: true)
+        panel.orderFrontRegardless()
     }
 
     /// A click on a card of the shelf chooses it; a double click pastes.

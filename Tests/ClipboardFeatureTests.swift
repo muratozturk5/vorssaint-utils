@@ -435,6 +435,15 @@ enum ClipboardFeatureTests {
         suite.expect(searchCache.foldCount == initialFoldCount,
                      "keystrokes reuse folded entries without refolding a single one")
 
+        // A running paste stack leads the closed island, opens the clipboard
+        // page, and is named in every language.
+        suite.expect(NotchSupport.compactActivities(timer: true, downloads: false, agents: false, calendar: false,
+                                                    music: true, pasteStack: true).first == .pasteStack
+                && !NotchSupport.compactActivities(timer: true, downloads: false, agents: false, calendar: false,
+                                                   music: true).contains(.pasteStack)
+                && NotchCompactActivity.pasteStack.module == .clipboard
+                && AppLanguage.allCases.allSatisfy { !NotchCompactActivity.pasteStack.title($0).isEmpty },
+               "a paste stack leads the closed island only while it runs and opens the clipboard")
         // A card shows a link only for an entry that is one web address.
         suite.expect(ClipboardHistoryEntry(text: "  https://example.com/home  ").linkURL?.host == "example.com"
                 && ClipboardHistoryEntry(text: "http://example.com/a?b=c").linkURL != nil,
@@ -991,6 +1000,10 @@ enum ClipboardFeatureTests {
                             .allSatisfy { !$0.isEmpty }
                    && String(format: clipboardStrings.cardCharacterCountFormat, 42).contains("42"),
                    "\(language.rawValue) clipboard card kinds and character count are localized")
+            suite.expect([clipboardStrings.pasteStackTitle, clipboardStrings.pasteStackEnd,
+                          clipboardStrings.pasteStackAdd].allSatisfy { !$0.isEmpty }
+                   && String(format: clipboardStrings.pasteStackRemainingFormat, 2).contains("2"),
+                   "\(language.rawValue) the clipboard paste stack is localized")
             let layoutStrings = FeatureStrings.windowLayout(language)
             suite.expect(!layoutStrings.sixths.isEmpty
                    && !layoutStrings.topLeftSixth.isEmpty
