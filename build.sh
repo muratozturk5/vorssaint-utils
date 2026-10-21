@@ -508,6 +508,7 @@ if (( TEST )); then
         Sources/Vorssaint/Services/QuickTools/ScreenshotImageLayerRendering.swift
         Sources/Vorssaint/Services/QuickTools/ScreenshotInspectionRendering.swift
         Sources/Vorssaint/Services/QuickTools/ScreenshotInspectionSupport.swift
+        Sources/Vorssaint/Services/QuickTools/ScreenshotOutputSupport.swift
         Sources/Vorssaint/Services/QuickTools/RecentCaptureStore.swift
         Sources/Vorssaint/Services/QuickTools/ScreenshotSharingSupport.swift
         Sources/Vorssaint/Services/QuickTools/WindowActivationPolicy.swift

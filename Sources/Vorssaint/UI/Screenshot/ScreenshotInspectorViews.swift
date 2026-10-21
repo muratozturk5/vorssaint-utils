@@ -218,3 +218,83 @@ struct ScreenshotSelectionReadout: View {
                 .strokeBorder(Color.primary.opacity(0.25), lineWidth: 0.5))
     }
 }
+
+/// Width and height in pixels, kept in proportion, or a quick percentage.
+struct ScreenshotResizePopover: View {
+    let original: CGSize
+    let strings: ScreenshotInspectorStrings
+    let apply: (CGSize) -> Void
+
+    @State private var width = ""
+    @State private var height = ""
+
+    private static let percentages = [25, 50, 75, 150, 200]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(strings.resizeTitle)
+                .font(.headline)
+            HStack(spacing: 8) {
+                field(strings.resizeWidth, text: $width) { typed in
+                    height = String(ScreenshotOutputSupport.proportionalSide(
+                        typed, of: original.width, other: original.height))
+                }
+                Image(systemName: "link")
+                    .foregroundStyle(.secondary)
+                field(strings.resizeHeight, text: $height) { typed in
+                    width = String(ScreenshotOutputSupport.proportionalSide(
+                        typed, of: original.height, other: original.width))
+                }
+                Text("px")
+                    .foregroundStyle(.secondary)
+            }
+            HStack(spacing: 4) {
+                ForEach(Self.percentages, id: \.self) { percent in
+                    Button("\(percent)%") {
+                        if let size = ScreenshotOutputSupport.resizedSize(original: original, percent: percent) {
+                            width = String(Int(size.width))
+                            height = String(Int(size.height))
+                        }
+                    }
+                    .controlSize(.small)
+                }
+            }
+            Text(strings.resizeCaption)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Spacer()
+                Button(strings.resizeApply) {
+                    if let size = target { apply(size) }
+                }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+                .disabled(target == nil)
+            }
+        }
+        .padding(14)
+        .frame(width: 300)
+        .onAppear {
+            width = String(Int(original.width))
+            height = String(Int(original.height))
+        }
+    }
+
+    private var target: CGSize? {
+        ScreenshotOutputSupport.resizedSize(original: original, width: Int(width))
+    }
+
+    private func field(_ label: String, text: Binding<String>,
+                       onType: @escaping (Int) -> Void) -> some View {
+        TextField(label, text: Binding(get: { text.wrappedValue }, set: { value in
+            let digits = String(value.filter(\.isNumber).prefix(5))
+            text.wrappedValue = digits
+            if let typed = Int(digits), typed > 0 { onType(typed) }
+        }))
+        .textFieldStyle(.roundedBorder)
+        .multilineTextAlignment(.trailing)
+        .frame(width: 76)
+        .accessibilityLabel(label)
+    }
+}

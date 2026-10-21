@@ -1427,6 +1427,44 @@ extension ScreenshotEditorModel {
                                                            within: CGRect(origin: .zero, size: imageSize))
         return true
     }
+
+    /// Resamples the capture to `size`. The marks are merged into it first,
+    /// so they keep their place and weight; undo brings them back as marks.
+    @discardableResult
+    func resizeImage(to size: CGSize) -> Bool {
+        guard size != imageSize else { return false }
+        ensureBlurSamplesForAnnotations()
+        guard let flattened = ScreenshotRenderer.renderExport(
+                baseImage: baseImage,
+                annotations: annotations,
+                blurSources: blurSources,
+                scale: scale,
+                annotationShadowsEnabled: annotationShadowsEnabled,
+                watermark: ScreenshotSupport.WatermarkStyle(),
+                watermarkImage: nil,
+                style: ScreenshotSupport.BackdropStyle(kind: .none, cornerRadius: 0),
+                fill: .none,
+                downscaleTo1x: false,
+                spotlightDimStrength: spotlightDimStrength)?.image,
+              let resized = ScreenshotRenderer.resized(flattened, to: size)
+        else { return false }
+        registerUndo()
+        baseImage = resized
+        annotations = []
+        pixelated = [:]
+        softBlurred = [:]
+        textRuns = nil
+        textWords = []
+        clearTextSelection()
+        selectedID = nil
+        editingTextID = nil
+        cropDraft = nil
+        if tool == .crop || tool == .expandCanvas { tool = .select }
+        pruneCarriedRuns()
+        recognizeText()
+        recognizeQRCodes()
+        return true
+    }
 }
 
 // MARK: - Window controller

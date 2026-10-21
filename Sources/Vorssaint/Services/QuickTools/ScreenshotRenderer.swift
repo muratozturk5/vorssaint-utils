@@ -1180,7 +1180,7 @@ enum ScreenshotRenderer {
         }
     }
 
-    private static func resized(_ image: CGImage, to size: CGSize) -> CGImage? {
+    static func resized(_ image: CGImage, to size: CGSize) -> CGImage? {
         guard let context = CGContext(data: nil,
                                       width: Int(size.width),
                                       height: Int(size.height),

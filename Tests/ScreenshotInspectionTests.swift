@@ -6,6 +6,7 @@ import AppKit
 /// The screenshot editor's inspection rules, on synthetic pixels.
 enum ScreenshotInspectionTests {
     typealias Inspection = ScreenshotInspectionSupport
+    typealias Output = ScreenshotOutputSupport
     typealias RGBA = Inspection.RGBA
 
     static let white = RGBA(255, 255, 255)
@@ -54,6 +55,7 @@ enum ScreenshotInspectionTests {
         smartCrop(suite)
         tools(suite)
         rendering(suite)
+        resizing(suite)
         preferencesAndStrings(suite)
     }
 
@@ -274,6 +276,30 @@ enum ScreenshotInspectionTests {
         let guided = rendered(image(width: 40, height: 40) { _, _ in white }, [guide])
         suite.expect(pixel(guided, 5, 1).blue > 200 && pixel(guided, 20, 20) == white,
                      "a guide draws a thin line across the capture and nothing else")
+    }
+
+    // MARK: - Resize
+
+    static func resizing(_ suite: TestSuite) {
+        let original = CGSize(width: 1000, height: 500)
+        suite.expect(Output.resizedSize(original: original, width: 400) == CGSize(width: 400, height: 200)
+                     && Output.resizedSize(original: original, height: 100) == CGSize(width: 200, height: 100)
+                     && Output.resizedSize(original: original, percent: 150) == CGSize(width: 1500, height: 750),
+                     "resizing keeps the proportions from a width, a height or a percentage")
+        suite.expect(Output.resizedSize(original: original, width: 1000) == nil
+                     && Output.resizedSize(original: original, width: 10) == nil
+                     && Output.resizedSize(original: original, percent: 2000) == nil
+                     && Output.resizedSize(original: original) == nil
+                     && Output.resizedSize(original: original, width: -4) == nil,
+                     "no change, a side outside the limits or nothing typed resizes nothing")
+        suite.expect(Output.proportionalSide(400, of: 1000, other: 500) == 200
+                     && Output.proportionalSide(3, of: 1000, other: 500) == 2,
+                     "the other field follows in proportion")
+        let base = image(width: 40, height: 20) { x, _ in x < 20 ? black : white }
+        let smaller = ScreenshotRenderer.resized(base, to: CGSize(width: 20, height: 10))
+        suite.expect(smaller?.width == 20 && smaller?.height == 10
+                     && smaller.map { pixel($0, 2, 5).red < 40 && pixel($0, 17, 5).red > 215 } == true,
+                     "resampling keeps what is where")
     }
 
     // MARK: - Preferences and strings

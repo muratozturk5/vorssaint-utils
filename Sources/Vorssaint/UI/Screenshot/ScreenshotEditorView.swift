@@ -28,6 +28,7 @@ struct ScreenshotEditorView: View {
     @State private var sharing = false
     /// A drag that marks a live measurement, not one a tool draws.
     @State private var inspectionDrag = false
+    @State private var resizePopoverShown = false
     @State private var sharedRecord: ScreenshotShareRecord?
     @State private var shareAnchor = ShelfSharePickerAnchor.Anchor()
     @AppStorage(DefaultsKey.screenshotToolOrder) private var toolOrderRaw =
@@ -1742,11 +1743,27 @@ struct ScreenshotEditorView: View {
     private var infoChip: some View {
         HStack(spacing: 8) {
             dragOutHandle
-            Text(dimensionsLabel)
-                .font(.system(size: 11, weight: .medium).monospacedDigit())
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .fixedSize()
+            Button {
+                resizePopoverShown.toggle()
+            } label: {
+                Text(dimensionsLabel)
+                    .font(.system(size: 11, weight: .medium).monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.borderless)
+            .screenshotSafeHelp(inspectorStrings.resizeTitle)
+            .accessibilityLabel(inspectorStrings.resizeTitle)
+            .accessibilityValue(dimensionsLabel)
+            .popover(isPresented: $resizePopoverShown, arrowEdge: .top) {
+                ScreenshotResizePopover(original: model.imageSize, strings: inspectorStrings) { size in
+                    commitEditingTextIfNeeded()
+                    resizePopoverShown = false
+                    if !model.resizeImage(to: size) { NSSound.beep() }
+                }
+            }
         }
         .padding(.horizontal, 9)
         .padding(.vertical, 6)

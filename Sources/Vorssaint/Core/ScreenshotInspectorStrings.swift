@@ -15,6 +15,11 @@ struct ScreenshotInspectorStrings {
     let contrastLabel: String
     let contrastHelp: String
     let fitToContent: String
+    let resizeTitle: String
+    let resizeWidth: String
+    let resizeHeight: String
+    let resizeApply: String
+    let resizeCaption: String
 }
 
 extension FeatureStrings {
@@ -50,7 +55,12 @@ extension ScreenshotInspectorStrings {
         averageColorLabel: "Average color",
         contrastLabel: "Contrast",
         contrastHelp: "Contrast of the selection’s most distinct color on its background, as a WCAG 2 ratio and APCA Lc",
-        fitToContent: "Fit to content"
+        fitToContent: "Fit to content",
+        resizeTitle: "Image size",
+        resizeWidth: "Width",
+        resizeHeight: "Height",
+        resizeApply: "Resize",
+        resizeCaption: "Marks become part of the picture. Undo brings them back."
     )
 
     static let ptBR = ScreenshotInspectorStrings(
@@ -63,7 +73,12 @@ extension ScreenshotInspectorStrings {
         averageColorLabel: "Cor média",
         contrastLabel: "Contraste",
         contrastHelp: "Contraste da cor mais distinta da seleção sobre o fundo, como razão WCAG 2 e APCA Lc",
-        fitToContent: "Ajustar ao conteúdo"
+        fitToContent: "Ajustar ao conteúdo",
+        resizeTitle: "Tamanho da imagem",
+        resizeWidth: "Largura",
+        resizeHeight: "Altura",
+        resizeApply: "Redimensionar",
+        resizeCaption: "As marcações passam a fazer parte da imagem. Desfazer as traz de volta."
     )
 
     static let tr = ScreenshotInspectorStrings(
@@ -76,7 +91,12 @@ extension ScreenshotInspectorStrings {
         averageColorLabel: "Ortalama renk",
         contrastLabel: "Kontrast",
         contrastHelp: "Seçimdeki en belirgin rengin arka plana karşı kontrastı, WCAG 2 oranı ve APCA Lc olarak",
-        fitToContent: "İçeriğe sığdır"
+        fitToContent: "İçeriğe sığdır",
+        resizeTitle: "Görsel boyutu",
+        resizeWidth: "Genişlik",
+        resizeHeight: "Yükseklik",
+        resizeApply: "Boyutlandır",
+        resizeCaption: "Notlar görselin parçası olur. Geri al onları geri getirir."
     )
 
     static let ru = ScreenshotInspectorStrings(
@@ -89,7 +109,12 @@ extension ScreenshotInspectorStrings {
         averageColorLabel: "Средний цвет",
         contrastLabel: "Контраст",
         contrastHelp: "Контраст самого заметного цвета выделения с фоном: отношение WCAG 2 и APCA Lc",
-        fitToContent: "Подогнать к содержимому"
+        fitToContent: "Подогнать к содержимому",
+        resizeTitle: "Размер изображения",
+        resizeWidth: "Ширина",
+        resizeHeight: "Высота",
+        resizeApply: "Изменить размер",
+        resizeCaption: "Пометки станут частью изображения. Отмена вернёт их."
     )
 
     static let es = ScreenshotInspectorStrings(
@@ -102,7 +127,12 @@ extension ScreenshotInspectorStrings {
         averageColorLabel: "Color medio",
         contrastLabel: "Contraste",
         contrastHelp: "Contraste del color más distinto de la selección sobre el fondo, como relación WCAG 2 y APCA Lc",
-        fitToContent: "Ajustar al contenido"
+        fitToContent: "Ajustar al contenido",
+        resizeTitle: "Tamaño de la imagen",
+        resizeWidth: "Ancho",
+        resizeHeight: "Alto",
+        resizeApply: "Redimensionar",
+        resizeCaption: "Las marcas pasan a formar parte de la imagen. Deshacer las recupera."
     )
 
     static let sk = ScreenshotInspectorStrings(
@@ -115,7 +145,12 @@ extension ScreenshotInspectorStrings {
         averageColorLabel: "Priemerná farba",
         contrastLabel: "Kontrast",
         contrastHelp: "Kontrast najvýraznejšej farby výberu voči pozadiu ako pomer WCAG 2 a APCA Lc",
-        fitToContent: "Prispôsobiť obsahu"
+        fitToContent: "Prispôsobiť obsahu",
+        resizeTitle: "Veľkosť obrázka",
+        resizeWidth: "Šírka",
+        resizeHeight: "Výška",
+        resizeApply: "Zmeniť veľkosť",
+        resizeCaption: "Značky sa stanú súčasťou obrázka. Späť ich vráti."
     )
 
     static let de = ScreenshotInspectorStrings(
@@ -128,7 +163,12 @@ extension ScreenshotInspectorStrings {
         averageColorLabel: "Durchschnittsfarbe",
         contrastLabel: "Kontrast",
         contrastHelp: "Kontrast der markantesten Farbe der Auswahl zum Hintergrund als WCAG-2-Verhältnis und APCA Lc",
-        fitToContent: "An Inhalt anpassen"
+        fitToContent: "An Inhalt anpassen",
+        resizeTitle: "Bildgröße",
+        resizeWidth: "Breite",
+        resizeHeight: "Höhe",
+        resizeApply: "Größe ändern",
+        resizeCaption: "Markierungen werden Teil des Bilds. Widerrufen holt sie zurück."
     )
 
     static let fr = ScreenshotInspectorStrings(
@@ -141,7 +181,12 @@ extension ScreenshotInspectorStrings {
         averageColorLabel: "Couleur moyenne",
         contrastLabel: "Contraste",
         contrastHelp: "Contraste de la couleur la plus distincte de la sélection sur son fond, en rapport WCAG 2 et APCA Lc",
-        fitToContent: "Ajuster au contenu"
+        fitToContent: "Ajuster au contenu",
+        resizeTitle: "Taille de l’image",
+        resizeWidth: "Largeur",
+        resizeHeight: "Hauteur",
+        resizeApply: "Redimensionner",
+        resizeCaption: "Les annotations font partie de l’image. Annuler les rétablit."
     )
 
     static let it = ScreenshotInspectorStrings(
@@ -154,7 +199,12 @@ extension ScreenshotInspectorStrings {
         averageColorLabel: "Colore medio",
         contrastLabel: "Contrasto",
         contrastHelp: "Contrasto del colore più distinto della selezione sullo sfondo, come rapporto WCAG 2 e APCA Lc",
-        fitToContent: "Adatta al contenuto"
+        fitToContent: "Adatta al contenuto",
+        resizeTitle: "Dimensioni immagine",
+        resizeWidth: "Larghezza",
+        resizeHeight: "Altezza",
+        resizeApply: "Ridimensiona",
+        resizeCaption: "Le annotazioni diventano parte dell’immagine. Annulla le riporta indietro."
     )
 
     static let ja = ScreenshotInspectorStrings(
@@ -167,7 +217,12 @@ extension ScreenshotInspectorStrings {
         averageColorLabel: "平均色",
         contrastLabel: "コントラスト",
         contrastHelp: "選択範囲で最も目立つ色と背景のコントラスト（WCAG 2 の比率と APCA Lc）",
-        fitToContent: "内容に合わせる"
+        fitToContent: "内容に合わせる",
+        resizeTitle: "画像サイズ",
+        resizeWidth: "幅",
+        resizeHeight: "高さ",
+        resizeApply: "サイズを変更",
+        resizeCaption: "注釈は画像の一部になります。取り消すと元に戻ります。"
     )
 
     static let ko = ScreenshotInspectorStrings(
@@ -180,7 +235,12 @@ extension ScreenshotInspectorStrings {
         averageColorLabel: "평균 색상",
         contrastLabel: "대비",
         contrastHelp: "선택 영역에서 가장 두드러진 색상과 배경의 대비(WCAG 2 비율 및 APCA Lc)",
-        fitToContent: "내용에 맞추기"
+        fitToContent: "내용에 맞추기",
+        resizeTitle: "이미지 크기",
+        resizeWidth: "너비",
+        resizeHeight: "높이",
+        resizeApply: "크기 조절",
+        resizeCaption: "주석이 이미지의 일부가 됩니다. 실행 취소하면 되돌아옵니다."
     )
 
     static let zhHans = ScreenshotInspectorStrings(
@@ -193,7 +253,12 @@ extension ScreenshotInspectorStrings {
         averageColorLabel: "平均颜色",
         contrastLabel: "对比度",
         contrastHelp: "所选区域中最突出的颜色与背景的对比度（WCAG 2 比值和 APCA Lc）",
-        fitToContent: "适合内容"
+        fitToContent: "适合内容",
+        resizeTitle: "图片大小",
+        resizeWidth: "宽度",
+        resizeHeight: "高度",
+        resizeApply: "调整大小",
+        resizeCaption: "标注将合并到图片中。撤销可恢复。"
     )
 
     static let zhTW = ScreenshotInspectorStrings(
@@ -206,7 +271,12 @@ extension ScreenshotInspectorStrings {
         averageColorLabel: "平均顏色",
         contrastLabel: "對比",
         contrastHelp: "所選範圍中最突出的顏色與背景的對比（WCAG 2 比值與 APCA Lc）",
-        fitToContent: "符合內容"
+        fitToContent: "符合內容",
+        resizeTitle: "圖片大小",
+        resizeWidth: "寬度",
+        resizeHeight: "高度",
+        resizeApply: "調整大小",
+        resizeCaption: "標註會合併到圖片中。還原可將其恢復。"
     )
 
     static let zhHK = ScreenshotInspectorStrings(
@@ -219,7 +289,12 @@ extension ScreenshotInspectorStrings {
         averageColorLabel: "平均顏色",
         contrastLabel: "對比",
         contrastHelp: "所選範圍中最突出的顏色與背景的對比（WCAG 2 比值與 APCA Lc）",
-        fitToContent: "符合內容"
+        fitToContent: "符合內容",
+        resizeTitle: "圖片大小",
+        resizeWidth: "闊度",
+        resizeHeight: "高度",
+        resizeApply: "調整大小",
+        resizeCaption: "標註會合併到圖片中。還原可將其恢復。"
     )
 
     static let uk = ScreenshotInspectorStrings(
@@ -232,6 +307,11 @@ extension ScreenshotInspectorStrings {
         averageColorLabel: "Середній колір",
         contrastLabel: "Контраст",
         contrastHelp: "Контраст найпомітнішого кольору виділення з тлом: співвідношення WCAG 2 і APCA Lc",
-        fitToContent: "Підігнати до вмісту"
+        fitToContent: "Підігнати до вмісту",
+        resizeTitle: "Розмір зображення",
+        resizeWidth: "Ширина",
+        resizeHeight: "Висота",
+        resizeApply: "Змінити розмір",
+        resizeCaption: "Позначки стануть частиною зображення. Скасування поверне їх."
     )
 }
