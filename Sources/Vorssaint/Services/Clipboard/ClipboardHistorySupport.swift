@@ -4,6 +4,7 @@
 import AppKit
 import Carbon.HIToolbox
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// How the history window shows its entries: a list in a window that keeps
 /// the size the user gives it, or a shelf of cards along the bottom of the
@@ -340,6 +341,23 @@ enum ClipboardHistoryEditing {
     static func canSave(original: String, draft: String) -> Bool {
         guard let text = storableText(draft) else { return false }
         return text != original
+    }
+
+    /// The list with one entry moved in front of another, as a card dropped
+    /// on another card of the shelf lands; nil when the move is not one the
+    /// history allows (the same entry, a missing one, or a pinned entry
+    /// crossing into the unpinned ones or back).
+    static func movedEntries(_ entries: [ClipboardHistoryEntry], moving id: UUID,
+                             before targetID: UUID) -> [ClipboardHistoryEntry]? {
+        guard id != targetID,
+              let from = entries.firstIndex(where: { $0.id == id }),
+              let target = entries.firstIndex(where: { $0.id == targetID }),
+              entries[from].isPinned == entries[target].isPinned else { return nil }
+        var moved = entries
+        let entry = moved.remove(at: from)
+        let insertion = moved.firstIndex(where: { $0.id == targetID }) ?? target
+        moved.insert(entry, at: insertion)
+        return moved == entries ? nil : moved
     }
 
     /// A copy taken again is rebuilt from what was read, but the group the
@@ -1334,5 +1352,111 @@ struct ClipboardPinboard: Codable, Equatable, Identifiable {
     static func nextTint(after boards: [ClipboardPinboard]) -> Tint {
         let all = Tint.allCases.filter { $0 != .gray }
         return all[boards.count % all.count]
+    }
+}
+
+/// What a card carries when dragged out of the history: its content, for
+/// Finder and other apps, and its id for the shelf's own group tabs.
+enum ClipboardEntryDrag {
+    /// The mark a dragged card carries, visible to this app only, so the
+    /// shelf's group tabs know which entry arrived.
+    static let entryType = UTType(exportedAs: "com.vorssaint.clipboard-entry", conformingTo: .data)
+
+    /// A picture goes as a temporary copy written only when a drop asks for
+    /// it: a drop on the same volume would otherwise move the history's own
+    /// file away.
+    static func provider(for entry: ClipboardHistoryEntry, imageDirectory: URL?) -> NSItemProvider {
+        let provider = NSItemProvider()
+        switch entry.kind {
+        case .text:
+            if let url = entry.linkURL {
+                provider.registerObject(url as NSURL, visibility: .all)
+            }
+            provider.registerObject(entry.text as NSString, visibility: .all)
+        case .image:
+            if let name = entry.imageFile, let source = imageDirectory?.appendingPathComponent(name) {
+                let fileName = ScreenshotSupport.fileName(
+                    prefix: FeatureStrings.clipboard(L10n.shared.language).imageEntryLabel,
+                    date: entry.copiedAt)
+                provider.suggestedName = (fileName as NSString).deletingPathExtension
+                provider.registerFileRepresentation(forTypeIdentifier: UTType.png.identifier,
+                                                    fileOptions: [], visibility: .all) { completion in
+                    do {
+                        let copy = try ScreenshotSupport.temporaryDragFile(
+                            data: try Data(contentsOf: source), name: fileName)
+                        // The receiver reads the file after the gesture ends.
+                        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 60 * 60) {
+                            try? FileManager.default.removeItem(at: copy.deletingLastPathComponent())
+                        }
+                        completion(copy, false, nil)
+                    } catch {
+                        completion(nil, false, error)
+                    }
+                    return nil
+                }
+            }
+        case .files:
+            if let path = entry.filePaths.first(where: { FileManager.default.fileExists(atPath: $0) }) {
+                provider.registerObject(URL(fileURLWithPath: path) as NSURL, visibility: .all)
+            }
+        }
+        provider.registerDataRepresentation(forTypeIdentifier: entryType.identifier,
+                                            visibility: .ownProcess) { completion in
+            completion(Data(entry.id.uuidString.utf8), nil)
+            return nil
+        }
+        return provider
+    }
+
+    /// One dragging item per file of a card holding several, which a single
+    /// item provider cannot carry. The first also carries the card's id, so
+    /// the shelf's group tabs take it too. Empty for any other card.
+    static func fileDraggingItems(for entry: ClipboardHistoryEntry, at point: CGPoint) -> [NSDraggingItem] {
+        guard entry.kind == .files else { return [] }
+        let urls = entry.filePaths.filter { FileManager.default.fileExists(atPath: $0) }
+            .map { URL(fileURLWithPath: $0) }
+        guard urls.count > 1 else { return [] }
+        return urls.enumerated().map { index, url in
+            let writer: NSPasteboardWriting
+            if index == 0 {
+                let item = NSPasteboardItem()
+                item.setString(url.absoluteString, forType: .fileURL)
+                item.setData(Data(entry.id.uuidString.utf8),
+                             forType: NSPasteboard.PasteboardType(entryType.identifier))
+                writer = item
+            } else {
+                writer = url as NSURL
+            }
+            let dragging = NSDraggingItem(pasteboardWriter: writer)
+            let offset = CGFloat(min(index, 4)) * 6
+            dragging.setDraggingFrame(NSRect(x: point.x - 24 + offset, y: point.y - 24 - offset,
+                                             width: 48, height: 48),
+                                      contents: NSWorkspace.shared.icon(forFile: url.path))
+            return dragging
+        }
+    }
+
+    /// Reads the entry a drop carries, then calls back on the main thread.
+    /// False, and no callback, for anything that did not start as a card.
+    static func loadEntryID(from providers: [NSItemProvider],
+                            completion: @escaping (UUID) -> Void) -> Bool {
+        guard let provider = providers.first(where: {
+            $0.hasItemConformingToTypeIdentifier(entryType.identifier)
+        }) else { return false }
+        provider.loadDataRepresentation(forTypeIdentifier: entryType.identifier) { data, _ in
+            guard let data, let text = String(data: data, encoding: .utf8),
+                  let id = UUID(uuidString: text) else { return }
+            DispatchQueue.main.async { completion(id) }
+        }
+        return true
+    }
+}
+
+/// Hands files out as copies, never moves: they belong to wherever the user
+/// copied them from.
+final class ClipboardFileDragSource: NSObject, NSDraggingSource {
+    func draggingSession(_ session: NSDraggingSession,
+                         sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
+        .copy
     }
 }
