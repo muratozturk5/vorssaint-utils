@@ -526,9 +526,16 @@ enum ClipboardFeatureTests {
                "a move never crosses between pinned and unpinned, nor does nothing count as one")
         // What the user gave an entry is theirs, so a copy taken again keeps it.
         var named = ClipboardHistoryEntry(text: "Named", pinnedAt: Date())
+        named.title = "Invoice"
         named.pinboardID = UUID()
         let recopied = ClipboardHistoryEditing.keepingUserChoices(
             of: named, in: ClipboardHistoryEntry(id: named.id, text: "Named", pinnedAt: named.pinnedAt))
+        suite.expect(recopied.title == "Invoice", "a copy taken again keeps its name")
+        suite.expect(ClipboardHistoryEditing.sanitizedTitle("   ") == nil
+                && ClipboardHistoryEditing.sanitizedTitle(String(repeating: "t", count: 90))?.count
+                    == ClipboardHistoryEditing.titleLimit
+                && named.searchableText(imageLabel: "Image").hasPrefix("Invoice "),
+               "a card's name is trimmed, capped, removable and found by the search")
         suite.expect(recopied.pinboardID == named.pinboardID, "a copy taken again keeps its group")
         suite.expect(ClipboardHistoryEditing.keepingUserChoices(
                         of: named, in: ClipboardHistoryEntry(id: named.id, text: "Named")).pinboardID == nil,
@@ -1103,6 +1110,8 @@ enum ClipboardFeatureTests {
                             .allSatisfy { !$0.isEmpty }
                    && String(format: clipboardStrings.pinboardDefaultNameFormat, 3).contains("3"),
                    "\(language.rawValue) clipboard groups are localized")
+            suite.expect(!clipboardStrings.itemTitleLabel.isEmpty && !clipboardStrings.rename.isEmpty,
+                   "\(language.rawValue) clipboard card names are localized")
             let layoutStrings = FeatureStrings.windowLayout(language)
             suite.expect(!layoutStrings.sixths.isEmpty
                    && !layoutStrings.topLeftSixth.isEmpty

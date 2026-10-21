@@ -161,6 +161,9 @@ struct ClipboardHistoryEntry: Codable, Equatable, Identifiable {
     /// one, so the history's limits never take a filed copy away; unpinning
     /// takes it out again.
     var pinboardID: UUID?
+    /// A name the user gave the entry, shown in place of its kind and
+    /// matched by the search.
+    var title: String?
 
     init(id: UUID = UUID(),
          text: String,
@@ -278,20 +281,24 @@ struct ClipboardHistoryEntry: Codable, Equatable, Identifiable {
     /// What the search box can match. Image entries carry the localized label
     /// plus dimensions so typing "image"/"imagem" finds them.
     func searchableText(imageLabel: String) -> String {
+        let content: String
         switch kind {
-        case .text: return text
-        case .image: return "\(imageLabel) png \(imageDimensionsLabel)"
+        case .text: content = text
+        case .image: content = "\(imageLabel) png \(imageDimensionsLabel)"
         case .files:
             let names = fileNames.joined(separator: " ")
             let hasImage = filePaths.contains { ClipboardHistoryImageSupport.isImageFileName($0) }
-            return hasImage ? "\(imageLabel) \(names)" : names
+            content = hasImage ? "\(imageLabel) \(names)" : names
         }
+        guard let title else { return content }
+        return "\(title) \(content)"
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, text, copiedAt, pinnedAt, kind, filePaths, imageFile, imageHash, imageWidth, imageHeight
         case sourceBundleID
         case pinboardID
+        case title
     }
 
     init(from decoder: Decoder) throws {
@@ -309,6 +316,7 @@ struct ClipboardHistoryEntry: Codable, Equatable, Identifiable {
         imageHeight = try container.decodeIfPresent(Int.self, forKey: .imageHeight)
         sourceBundleID = try container.decodeIfPresent(String.self, forKey: .sourceBundleID)
         pinboardID = try container.decodeIfPresent(UUID.self, forKey: .pinboardID)
+        title = try container.decodeIfPresent(String.self, forKey: .title)
     }
 }
 
@@ -360,13 +368,23 @@ enum ClipboardHistoryEditing {
         return moved == entries ? nil : moved
     }
 
-    /// A copy taken again is rebuilt from what was read, but the group the
-    /// user filed it under is theirs and stays with it while it is pinned.
+    /// A copy taken again is rebuilt from what was read, but the name and
+    /// the group the user gave it are theirs and stay with it.
     static func keepingUserChoices(of existing: ClipboardHistoryEntry,
                                    in recopied: ClipboardHistoryEntry) -> ClipboardHistoryEntry {
         var entry = recopied
+        entry.title = existing.title
         entry.pinboardID = entry.isPinned ? existing.pinboardID : nil
         return entry
+    }
+
+    static let titleLimit = 60
+
+    /// A title trimmed and capped, or nil for an empty one, which removes it.
+    static func sanitizedTitle(_ title: String) -> String? {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return String(trimmed.prefix(titleLimit))
     }
 
     /// `retentionDays` drops recent entries copied longer ago than that, even

@@ -505,6 +505,15 @@ final class ClipboardHistoryService: ObservableObject {
         save()
     }
 
+    /// Names an entry, or removes its name with an empty title.
+    func setTitle(_ title: String, for entry: ClipboardHistoryEntry) {
+        guard let index = entries.firstIndex(where: { $0.id == entry.id }) else { return }
+        let sanitized = ClipboardHistoryEditing.sanitizedTitle(title)
+        guard entries[index].title != sanitized else { return }
+        entries[index].title = sanitized
+        save()
+    }
+
     func pinboard(for entry: ClipboardHistoryEntry) -> ClipboardPinboard? {
         guard let id = entry.pinboardID else { return nil }
         return pinboards.first { $0.id == id }
