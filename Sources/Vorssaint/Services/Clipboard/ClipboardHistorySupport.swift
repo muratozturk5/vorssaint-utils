@@ -156,6 +156,10 @@ struct ClipboardHistoryEntry: Codable, Equatable, Identifiable {
     /// a history written before it existed still decodes, and an older
     /// version reading this file skips the key.
     var sourceBundleID: String?
+    /// The group the entry was filed under. Only pinned entries belong to
+    /// one, so the history's limits never take a filed copy away; unpinning
+    /// takes it out again.
+    var pinboardID: UUID?
 
     init(id: UUID = UUID(),
          text: String,
@@ -286,6 +290,7 @@ struct ClipboardHistoryEntry: Codable, Equatable, Identifiable {
     private enum CodingKeys: String, CodingKey {
         case id, text, copiedAt, pinnedAt, kind, filePaths, imageFile, imageHash, imageWidth, imageHeight
         case sourceBundleID
+        case pinboardID
     }
 
     init(from decoder: Decoder) throws {
@@ -302,6 +307,7 @@ struct ClipboardHistoryEntry: Codable, Equatable, Identifiable {
         imageWidth = try container.decodeIfPresent(Int.self, forKey: .imageWidth)
         imageHeight = try container.decodeIfPresent(Int.self, forKey: .imageHeight)
         sourceBundleID = try container.decodeIfPresent(String.self, forKey: .sourceBundleID)
+        pinboardID = try container.decodeIfPresent(UUID.self, forKey: .pinboardID)
     }
 }
 
@@ -336,6 +342,15 @@ enum ClipboardHistoryEditing {
         return text != original
     }
 
+    /// A copy taken again is rebuilt from what was read, but the group the
+    /// user filed it under is theirs and stays with it while it is pinned.
+    static func keepingUserChoices(of existing: ClipboardHistoryEntry,
+                                   in recopied: ClipboardHistoryEntry) -> ClipboardHistoryEntry {
+        var entry = recopied
+        entry.pinboardID = entry.isPinned ? existing.pinboardID : nil
+        return entry
+    }
+
     /// `retentionDays` drops recent entries copied longer ago than that, even
     /// under `recentLimit`; 0 keeps them. Pinned entries never expire, and
     /// `ageExemptIDs` (an entry open in the editor) wait until they are let go.
@@ -345,6 +360,7 @@ enum ClipboardHistoryEditing {
     static func unpinned(_ entry: ClipboardHistoryEntry, now: Date = Date()) -> ClipboardHistoryEntry {
         var entry = entry
         entry.pinnedAt = nil
+        entry.pinboardID = nil
         entry.copiedAt = now
         return entry
     }
@@ -869,6 +885,22 @@ enum ClipboardHistoryNavigation {
         }
         return nil
     }
+
+    /// Which way a key turns the shelf's tabs, or nil. Tab and Shift-Tab do
+    /// so always; Command and a side arrow only while the search is empty,
+    /// where they would otherwise move a caret that has nowhere to go.
+    static func pinboardStep(keyCode: UInt16, modifiers: NSEvent.ModifierFlags,
+                             layout: ClipboardHistoryLayout, queryIsEmpty: Bool) -> Int? {
+        guard layout == .cards else { return nil }
+        if keyCode == UInt16(kVK_Tab) {
+            if modifiers.isEmpty { return 1 }
+            if modifiers == [.shift] { return -1 }
+        }
+        guard queryIsEmpty, modifiers == [.command] else { return nil }
+        if keyCode == UInt16(kVK_RightArrow) { return 1 }
+        if keyCode == UInt16(kVK_LeftArrow) { return -1 }
+        return nil
+    }
 }
 
 enum ClipboardHistoryEscape {
@@ -1218,5 +1250,89 @@ enum ClipboardCardTint {
         guard current > maximumLuminance, current > 0 else { return color }
         let factor = maximumLuminance / current
         return RGB(red: color.red * factor, green: color.green * factor, blue: color.blue * factor)
+    }
+}
+
+/// A named, colored group of pinned entries. The list lives in
+/// preferences as JSON, so it travels with a settings backup; which
+/// entries belong to a group stays with the history itself.
+struct ClipboardPinboard: Codable, Equatable, Identifiable {
+    enum Tint: String, Codable, CaseIterable {
+        case red, orange, yellow, green, teal, blue, purple, pink, gray
+
+        var rgb: (red: Double, green: Double, blue: Double) {
+            switch self {
+            case .red: return (1.00, 0.27, 0.23)
+            case .orange: return (1.00, 0.58, 0.00)
+            case .yellow: return (1.00, 0.80, 0.00)
+            case .green: return (0.20, 0.78, 0.35)
+            case .teal: return (0.19, 0.69, 0.78)
+            case .blue: return (0.04, 0.52, 1.00)
+            case .purple: return (0.69, 0.32, 0.87)
+            case .pink: return (1.00, 0.18, 0.33)
+            case .gray: return (0.56, 0.56, 0.58)
+            }
+        }
+    }
+
+    static let limit = 24
+    static let nameLimit = 40
+
+    let id: UUID
+    var name: String
+    var tint: Tint
+
+    init(id: UUID = UUID(), name: String, tint: Tint) {
+        self.id = id
+        self.name = name
+        self.tint = tint
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, tint
+    }
+
+    /// A color this version does not know reads as blue rather than
+    /// dropping the whole group.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        tint = (try? container.decode(Tint.self, forKey: .tint)) ?? .blue
+    }
+
+    /// Trimmed and capped, or nil when nothing is left to name the group.
+    static func sanitizedName(_ name: String) -> String? {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return String(trimmed.prefix(nameLimit))
+    }
+
+    /// Decodes the stored list, dropping repeats, nameless groups and any
+    /// past the limit, so a damaged or tampered value cannot wedge the bar.
+    static func decodedList(_ raw: String?) -> [ClipboardPinboard] {
+        guard let raw, !raw.isEmpty, let data = raw.data(using: .utf8),
+              let decoded = try? JSONDecoder().decode([ClipboardPinboard].self, from: data)
+        else { return [] }
+        var seen = Set<UUID>()
+        return decoded.compactMap { board -> ClipboardPinboard? in
+            guard seen.insert(board.id).inserted, let name = sanitizedName(board.name) else { return nil }
+            var board = board
+            board.name = name
+            return board
+        }
+        .prefix(limit)
+        .map { $0 }
+    }
+
+    static func encodedList(_ boards: [ClipboardPinboard]) -> String {
+        guard let data = try? JSONEncoder().encode(Array(boards.prefix(limit))) else { return "" }
+        return String(data: data, encoding: .utf8) ?? ""
+    }
+
+    /// The next color in turn, so new groups tell apart at a glance.
+    static func nextTint(after boards: [ClipboardPinboard]) -> Tint {
+        let all = Tint.allCases.filter { $0 != .gray }
+        return all[boards.count % all.count]
     }
 }

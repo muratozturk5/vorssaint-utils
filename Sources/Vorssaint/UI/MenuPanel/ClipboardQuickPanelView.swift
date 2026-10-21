@@ -15,6 +15,8 @@ struct ClipboardQuickPanelView: View {
     /// The shelf's search starts as a magnifier. Typing opens it too: the
     /// field keeps the keyboard while it is folded away.
     @State private var searchExpanded = false
+    @State private var creatingPinboard = false
+    @State private var editingPinboardID: UUID?
 
     private var text: ClipboardFeatureStrings {
         FeatureStrings.clipboard(l10n.language)
@@ -79,6 +81,8 @@ struct ClipboardQuickPanelView: View {
         .onChange(of: history.quickWindowPresentationID) { _, _ in
             previewSelection.select(history.selectedQuickEntryID)
             searchExpanded = false
+            creatingPinboard = false
+            editingPinboardID = nil
         }
     }
 
@@ -105,14 +109,42 @@ struct ClipboardQuickPanelView: View {
         if layout == .cards { shelfToolbar } else { listToolbar }
     }
 
-    /// The shelf keeps one slim row above the cards: the search in the
-    /// middle, the window's own controls behind a menu on the right.
+    /// The shelf keeps one slim row above the cards: the search and the
+    /// group tabs in the middle, the window's own controls behind a menu on
+    /// the right.
     private var shelfToolbar: some View {
-        // The search sits in the exact middle whatever the menu at the right
+        // The tabs sit in the exact middle whatever the menu at the right
         // measures.
         ZStack {
             HStack(spacing: 4) {
                 shelfSearch
+                pinboardTab(nil)
+                ForEach(history.pinboards) { board in
+                    pinboardTab(board)
+                }
+                Button {
+                    creatingPinboard = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.system(size: 12, weight: .semibold))
+                        .frame(width: 26, height: 26)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .disabled(history.pinboards.count >= ClipboardPinboard.limit)
+                .help(text.pinboardNew)
+                .accessibilityLabel(text.pinboardNew)
+                .popover(isPresented: $creatingPinboard, arrowEdge: .top) {
+                    PinboardEditor(text: text, name: "",
+                                   tint: ClipboardPinboard.nextTint(after: history.pinboards),
+                                   actionTitle: text.pinboardCreate) { name, tint in
+                        if let board = history.createPinboard(named: name, tint: tint) {
+                            history.quickPinboardID = board.id
+                        }
+                        creatingPinboard = false
+                    }
+                }
             }
             .fixedSize()
             HStack {
@@ -197,6 +229,53 @@ struct ClipboardQuickPanelView: View {
         .animation(.easeOut(duration: 0.15), value: searchIsOpen)
     }
 
+    /// One tab of the shelf: the whole history, or a group with its color.
+    private func pinboardTab(_ board: ClipboardPinboard?) -> some View {
+        let selected = history.quickPinboardID == board?.id
+        return Button {
+            history.quickPinboardID = board?.id
+        } label: {
+            HStack(spacing: 5) {
+                if let board {
+                    Circle()
+                        .fill(PinboardEditor.color(board.tint))
+                        .frame(width: 8, height: 8)
+                } else {
+                    Image(systemName: "clock")
+                        .font(.system(size: 10.5, weight: .semibold))
+                }
+                Text(board?.name ?? text.pinboardAll)
+                    .font(.system(size: 12, weight: .medium))
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 26)
+            .background(Capsule(style: .continuous).fill(selected ? Color.primary.opacity(0.12) : .clear))
+            .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(selected ? Color.primary : Color.secondary)
+        .contextMenu {
+            if let board {
+                Button(text.rename) { editingPinboardID = board.id }
+                Divider()
+                Button(text.pinboardDelete, role: .destructive) { history.deletePinboard(board.id) }
+            }
+        }
+        .popover(isPresented: Binding(get: { board != nil && editingPinboardID == board?.id },
+                                      set: { if !$0 { editingPinboardID = nil } }),
+                 arrowEdge: .top) {
+            if let board {
+                PinboardEditor(text: text, name: board.name, tint: board.tint,
+                               actionTitle: text.rename.replacingOccurrences(of: "…", with: "")) { name, tint in
+                    history.renamePinboard(board.id, to: name)
+                    history.recolorPinboard(board.id, to: tint)
+                    editingPinboardID = nil
+                }
+            }
+        }
+    }
+
     private var listToolbar: some View {
         HStack(spacing: 8) {
             TextField(text.search, text: $history.quickQuery)
@@ -241,7 +320,8 @@ struct ClipboardQuickPanelView: View {
     @ViewBuilder
     private var content: some View {
         if filtered.isEmpty {
-            emptyState(history.entries.isEmpty ? text.empty : text.noResults)
+            emptyState(history.quickPinboardID != nil && history.quickQuery.isEmpty ? text.pinboardEmpty
+                       : history.entries.isEmpty ? text.empty : text.noResults)
         } else {
             ScrollViewReader { proxy in
                 // A plain stack for an ordinary history: with every entry
@@ -338,7 +418,8 @@ struct ClipboardQuickPanelView: View {
     @ViewBuilder
     private var sections: some View {
         let context = renderContext
-        if history.quickQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if history.quickQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           history.quickPinboardID == nil {
             let pinned = history.pinnedEntries
             let recent = history.recentEntries
             if layout == .list {
@@ -421,6 +502,7 @@ struct ClipboardQuickPanelView: View {
     private func entryView(_ entry: ClipboardHistoryEntry, context: RenderContext) -> some View {
         QuickEntryView(layout: layout,
                        entry: entry,
+                       pinboard: entry.pinboardID == nil ? nil : history.pinboard(for: entry),
                        tokens: context.tokens,
                        shortcutIndex: context.shortcutIndexes[entry.id],
                        isSelected: context.selectedID == entry.id,
@@ -534,6 +616,8 @@ private struct QuickEntryView: View, Equatable {
     private static let cardCornerRadius: CGFloat = 13
     let layout: ClipboardHistoryLayout
     let entry: ClipboardHistoryEntry
+    /// The entry's group, passed in so a renamed or recolored group redraws it.
+    let pinboard: ClipboardPinboard?
     let tokens: [String]
     let shortcutIndex: Int?
     let isSelected: Bool
@@ -565,6 +649,7 @@ private struct QuickEntryView: View, Equatable {
     static func == (lhs: QuickEntryView, rhs: QuickEntryView) -> Bool {
         lhs.layout == rhs.layout
             && lhs.entry == rhs.entry
+            && lhs.pinboard == rhs.pinboard
             && lhs.tokens == rhs.tokens
             && lhs.shortcutIndex == rhs.shortcutIndex
             && lhs.isSelected == rhs.isSelected
@@ -882,7 +967,12 @@ private struct QuickEntryView: View, Equatable {
                 .truncationMode(entry.kind == .files ? .head : .middle)
                 .padding(.horizontal, 34)
             HStack(spacing: 6) {
-                if entry.isPinned {
+                if let board = pinboard {
+                    Circle()
+                        .fill(PinboardEditor.color(board.tint))
+                        .frame(width: 8, height: 8)
+                        .help(board.name)
+                } else if entry.isPinned {
                     Image(systemName: "pin.fill")
                         .foregroundStyle(Color.accentColor)
                 }
@@ -1078,6 +1168,35 @@ private struct QuickEntryView: View, Equatable {
         Button(entry.isPinned ? text.unpin : text.pin) {
             history.togglePin(entry)
         }
+        // Groups show only on the shelf, so the list does not offer them.
+        if !isRow {
+            Menu(text.pinboardAddTo) {
+                ForEach(history.pinboards) { board in
+                    Button {
+                        history.file(entry, in: board.id)
+                    } label: {
+                        if entry.pinboardID == board.id {
+                            Label(board.name, systemImage: "checkmark")
+                        } else {
+                            Text(board.name)
+                        }
+                    }
+                }
+                if !history.pinboards.isEmpty { Divider() }
+                Button(text.pinboardNew) {
+                    let name = String(format: text.pinboardDefaultNameFormat, history.pinboards.count + 1)
+                    if let board = history.createPinboard(named: name) {
+                        history.file(entry, in: board.id)
+                    }
+                }
+                .disabled(history.pinboards.count >= ClipboardPinboard.limit)
+            }
+            if entry.pinboardID != nil {
+                Button(text.pinboardRemoveFrom) {
+                    history.file(entry, in: nil)
+                }
+            }
+        }
         Button(text.moveUp) {
             history.move(entry, .up)
         }
@@ -1241,6 +1360,57 @@ private struct ScrollBounceDisabler: NSViewRepresentable {
                 scrollView.horizontalScrollElasticity = .none
             }
         }
+    }
+}
+
+/// Names a group and picks its color, for a new group or an existing one.
+private struct PinboardEditor: View {
+    let text: ClipboardFeatureStrings
+    @State var name: String
+    @State var tint: ClipboardPinboard.Tint
+    let actionTitle: String
+    let onCommit: (String, ClipboardPinboard.Tint) -> Void
+    @FocusState private var nameFocused: Bool
+
+    static func color(_ tint: ClipboardPinboard.Tint) -> Color {
+        let rgb = tint.rgb
+        return Color(.sRGB, red: rgb.red, green: rgb.green, blue: rgb.blue, opacity: 1)
+    }
+
+    private var canCommit: Bool { ClipboardPinboard.sanitizedName(name) != nil }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            TextField(text.pinboardNameLabel, text: $name)
+                .textFieldStyle(.roundedBorder)
+                .focused($nameFocused)
+                .onSubmit { if canCommit { onCommit(name, tint) } }
+            HStack(spacing: 8) {
+                ForEach(ClipboardPinboard.Tint.allCases, id: \.self) { choice in
+                    Button {
+                        tint = choice
+                    } label: {
+                        Circle()
+                            .fill(Self.color(choice))
+                            .frame(width: 16, height: 16)
+                            .overlay(Circle().strokeBorder(Color.primary.opacity(0.8),
+                                                           lineWidth: tint == choice ? 2 : 0).padding(-3))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(text.pinboardColor)
+                    .accessibilityAddTraits(tint == choice ? .isSelected : [])
+                }
+            }
+            HStack {
+                Spacer()
+                Button(actionTitle) { onCommit(name, tint) }
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(!canCommit)
+            }
+        }
+        .padding(14)
+        .frame(width: 250)
+        .onAppear { nameFocused = true }
     }
 }
 
