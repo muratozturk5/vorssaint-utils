@@ -831,10 +831,24 @@ private struct QuickEntryView: View, Equatable {
         }
     }
 
+    @ViewBuilder
+    private var textCardBody: some View {
+        if tokens.isEmpty, let name = entry.richTextFile,
+           let shown = ClipboardRichTextStore.displayString(named: name) {
+            // The copy's own formatting; a search shows the plain text
+            // instead, so it can mark what matched.
+            RichTextPreview(text: shown)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .padding(11)
+        } else {
+            plainTextCardBody
+        }
+    }
+
     /// A short first line over more text reads as a title, like a note's
     /// heading above its body.
     @ViewBuilder
-    private var textCardBody: some View {
+    private var plainTextCardBody: some View {
         let parts = entry.cardPreview.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false)
         VStack(alignment: .leading, spacing: 4) {
             if parts.count == 2, parts[0].count <= 60,
@@ -1297,6 +1311,31 @@ private struct LinkCardBody: View {
             .padding([.horizontal, .bottom], 10)
         }
     }
+}
+
+/// Formatted text in a card, cut off after the lines the card has room for.
+private struct RichTextPreview: NSViewRepresentable {
+    let text: NSAttributedString
+
+    func makeNSView(context: Context) -> NSTextField {
+        let field = NSTextField(labelWithAttributedString: text)
+        field.maximumNumberOfLines = 10
+        field.lineBreakMode = .byTruncatingTail
+        field.cell?.truncatesLastVisibleLine = true
+        field.preferredMaxLayoutWidth = QuickEntryLayout.cardTextWidth
+        field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        field.setContentCompressionResistancePriority(.defaultLow, for: .vertical)
+        return field
+    }
+
+    func updateNSView(_ field: NSTextField, context: Context) {
+        if !field.attributedStringValue.isEqual(to: text) { field.attributedStringValue = text }
+    }
+}
+
+private enum QuickEntryLayout {
+    /// A card's width less its body's padding.
+    static let cardTextWidth: CGFloat = 236 - 22
 }
 
 /// How a card looks: the source app, the header color taken from its icon,
