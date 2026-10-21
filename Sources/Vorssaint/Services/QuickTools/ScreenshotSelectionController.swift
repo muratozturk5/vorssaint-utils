@@ -298,7 +298,7 @@ final class ScreenshotSelectionController {
             toggleLoupe()
         }
         BackgroundCursor.setAllowed(true)
-        NSCursor.crosshair.set()
+        ScreenshotSupport.capturePointer(windowOnly: windowOnly, overControl: false).cursor.set()
     }
 
     private func screenCaptureToolDidChange() {
@@ -906,6 +906,50 @@ private enum BackgroundCursor {
     }
 }
 
+private extension ScreenshotSupport.CapturePointer {
+    var cursor: NSCursor {
+        switch self {
+        case .arrow: return .arrow
+        case .crosshair: return .crosshair
+        case .camera: return CameraCursor.shared ?? .crosshair
+        }
+    }
+}
+
+/// The system's camera symbol outlined in white, so it reads over any window,
+/// with its hot spot in the middle. Nil if the symbol is missing, and the
+/// crosshair stands in.
+private enum CameraCursor {
+    static let shared: NSCursor? = {
+        guard let symbol = NSImage(systemSymbolName: "camera.fill", accessibilityDescription: nil)?
+            .withSymbolConfiguration(.init(pointSize: 17, weight: .semibold))
+        else { return nil }
+        func tinted(_ color: NSColor) -> NSImage {
+            NSImage(size: symbol.size, flipped: false) { rect in
+                symbol.draw(in: rect)
+                color.set()
+                rect.fill(using: .sourceAtop)
+                return true
+            }
+        }
+        let outline = tinted(.white)
+        let fill = tinted(.black)
+        let inset: CGFloat = 2
+        let size = NSSize(width: symbol.size.width + inset * 2, height: symbol.size.height + inset * 2)
+        let image = NSImage(size: size, flipped: false) { _ in
+            let base = NSRect(origin: NSPoint(x: inset, y: inset), size: symbol.size)
+            for dx in [-1.5, 0, 1.5] as [CGFloat] {
+                for dy in [-1.5, 0, 1.5] as [CGFloat] where dx != 0 || dy != 0 {
+                    outline.draw(in: base.offsetBy(dx: dx, dy: dy))
+                }
+            }
+            fill.draw(in: base)
+            return true
+        }
+        return NSCursor(image: image, hotSpot: NSPoint(x: size.width / 2, y: size.height / 2))
+    }()
+}
+
 // MARK: - Panel
 
 /// Full-screen borderless panel for one display. Never activates the app;
@@ -1148,16 +1192,19 @@ private final class ScreenshotOverlayView: NSView {
     required init?(coder: NSCoder) { nil }
 
     override func resetCursorRects() {
-        addCursorRect(bounds, cursor: .crosshair)
+        addCursorRect(bounds, cursor: ScreenshotSupport.capturePointer(
+            windowOnly: controller?.windowOnly == true, overControl: false).cursor)
     }
 
     /// The panels never activate the app, and AppKit only reads cursor rects
     /// for the active app, so the pointer is set on every pointer event: the
-    /// crosshair over the area to pick, the arrow over the clickable controls.
+    /// crosshair over an area to pick, a camera over a window to pick, the
+    /// arrow over the clickable controls.
     private func refreshCursor(at point: CGPoint) {
         let overControl = pointerIsOverFullScreenControl(point)
             || (!guideHost.isHidden && !guideHost.passesThrough && guideHost.frame.contains(point))
-        (overControl ? NSCursor.arrow : NSCursor.crosshair).set()
+        ScreenshotSupport.capturePointer(windowOnly: controller?.windowOnly == true,
+                                         overControl: overControl).cursor.set()
     }
 
     override func layout() {
