@@ -8,6 +8,7 @@ import CoreAudio
 import CoreGraphics
 import Darwin
 import Foundation
+import UniformTypeIdentifiers
 import ImageIO
 import SwiftUI
 import VMStatisticsCompat
@@ -472,6 +473,30 @@ enum ClipboardFeatureTests {
                "a history written before groups still decodes")
         suite.expect(SettingsBackupSupport.exportKeys().contains(DefaultsKey.clipboardPinboards),
                "the group list travels with a settings backup")
+        // A dragged card carries its content for other apps and its id,
+        // seen only by this app, for the shelf's group tabs.
+        func dragTypes(_ entry: ClipboardHistoryEntry) -> [String] {
+            ClipboardEntryDrag.provider(for: entry, imageDirectory: FileManager.default.temporaryDirectory)
+                .registeredTypeIdentifiers
+        }
+        let entryMark = ClipboardEntryDrag.entryType.identifier
+        let textTypes = dragTypes(ClipboardHistoryEntry(text: "Hello"))
+        suite.expect(textTypes.contains(entryMark) && textTypes.contains { UTType($0)?.conforms(to: .plainText) == true }
+                && !textTypes.contains { UTType($0)?.conforms(to: .url) == true },
+               "a dragged text card carries its text and its id")
+        let linkTypes = dragTypes(ClipboardHistoryEntry(text: "https://example.com"))
+        suite.expect(linkTypes.contains { UTType($0)?.conforms(to: .url) == true }
+                && linkTypes.contains { UTType($0)?.conforms(to: .plainText) == true },
+               "a dragged link card carries the address and its text")
+        let imageTypes = dragTypes(ClipboardHistoryEntry(text: "", kind: .image, imageFile: "a.png",
+                                                         imageWidth: 10, imageHeight: 10))
+        suite.expect(imageTypes.contains(UTType.png.identifier) && imageTypes.contains(entryMark),
+               "a dragged picture card carries a PNG")
+        let fileTypes = dragTypes(ClipboardHistoryEntry(text: "", kind: .files, filePaths: ["/bin/ls"]))
+        suite.expect(fileTypes.contains { UTType($0)?.conforms(to: .fileURL) == true },
+               "a dragged file card carries the file")
+        suite.expect(!ClipboardEntryDrag.loadEntryID(from: [NSItemProvider(object: "plain" as NSString)]) { _ in },
+               "a drop that did not start as a card is not taken for one")
         // The shelf's tabs turn with Tab and Shift-Tab, and with Command and a
         // side arrow while nothing is typed; the list has no tabs.
         func tabStep(_ key: Int, _ modifiers: NSEvent.ModifierFlags, layout: ClipboardHistoryLayout = .cards,
@@ -486,6 +511,21 @@ enum ClipboardFeatureTests {
                 && tabStep(kVK_RightArrow, []) == nil
                 && tabStep(kVK_Tab, [], layout: .list) == nil,
                "a typed search keeps Command-arrows for its caret, plain arrows walk cards, the list has no tabs")
+        // A card dropped on another lands in front of it, among its own kind.
+        let pinnedA = ClipboardHistoryEntry(text: "A", pinnedAt: Date())
+        let pinnedB = ClipboardHistoryEntry(text: "B", pinnedAt: Date())
+        let pinnedC = ClipboardHistoryEntry(text: "C", pinnedAt: Date())
+        let loose = ClipboardHistoryEntry(text: "D")
+        let ordered = [pinnedA, pinnedB, pinnedC, loose]
+        suite.expect(ClipboardHistoryEditing.movedEntries(ordered, moving: pinnedC.id, before: pinnedA.id)?
+                        .map(\.text) == ["C", "A", "B", "D"]
+                && ClipboardHistoryEditing.movedEntries(ordered, moving: pinnedA.id, before: pinnedC.id)?
+                        .map(\.text) == ["B", "A", "C", "D"],
+               "a dropped card moves in front of the card it lands on")
+        suite.expect(ClipboardHistoryEditing.movedEntries(ordered, moving: loose.id, before: pinnedA.id) == nil
+                && ClipboardHistoryEditing.movedEntries(ordered, moving: pinnedA.id, before: pinnedA.id) == nil
+                && ClipboardHistoryEditing.movedEntries(ordered, moving: pinnedA.id, before: pinnedB.id) == nil,
+               "a move never crosses between pinned and unpinned, nor does nothing count as one")
         // What the user gave an entry is theirs, so a copy taken again keeps it.
         var named = ClipboardHistoryEntry(text: "Named", pinnedAt: Date())
         named.pinboardID = UUID()
@@ -495,6 +535,12 @@ enum ClipboardFeatureTests {
         suite.expect(ClipboardHistoryEditing.keepingUserChoices(
                         of: named, in: ClipboardHistoryEntry(id: named.id, text: "Named")).pinboardID == nil,
                "only a pinned entry stays in a group")
+        // A card of several files drags them all, the first carrying its id.
+        let severalFiles = ClipboardHistoryEntry(text: "", kind: .files, filePaths: ["/bin/ls", "/bin/cat"])
+        suite.expect(ClipboardEntryDrag.fileDraggingItems(for: severalFiles, at: .zero).count == 2
+                && ClipboardEntryDrag.fileDraggingItems(
+                    for: ClipboardHistoryEntry(text: "", kind: .files, filePaths: ["/bin/ls"]), at: .zero).isEmpty,
+               "a card of several files drags each of them; a single file keeps the ordinary drag")
         // A card shows a link only for an entry that is one web address.
         suite.expect(ClipboardHistoryEntry(text: "  https://example.com/home  ").linkURL?.host == "example.com"
                 && ClipboardHistoryEntry(text: "http://example.com/a?b=c").linkURL != nil,

@@ -107,6 +107,17 @@ final class ClipboardHistoryService: ObservableObject {
     private var panelSizeLimit: ClipboardPanelSizeLimit?
     private var keyMonitor: Any?
     private var modifierMonitor: Any?
+    /// Starts the drag of a card holding several files, which SwiftUI's
+    /// single item provider cannot carry.
+    private var fileDragMonitor: Any?
+    private var fileDragStart: (point: NSPoint, entryID: UUID)?
+    private let fileDragSource = ClipboardFileDragSource()
+    /// The card under the pointer, which such a drag starts from. Not
+    /// published: nothing redraws for it.
+    private var quickHoveredEntryID: UUID?
+    /// Polls a card dragged out of the shelf, which hands no events back
+    /// while the system runs the drag.
+    private var cardDragTimer: Timer?
     private var localClickMonitor: Any?
     private var outsideClickMonitor: Any?
     private var activationObserver: NSObjectProtocol?
@@ -1611,6 +1622,31 @@ final class ClipboardHistoryService: ObservableObject {
 
     private func installKeyMonitor(for panel: NSPanel) {
         removeKeyMonitor()
+        fileDragMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp]) { [weak self, weak panel] event in
+            guard let self, let panel, event.window === panel else { return event }
+            switch event.type {
+            case .leftMouseDown:
+                self.fileDragStart = self.quickHoveredEntryID.map { (event.locationInWindow, $0) }
+            case .leftMouseDragged:
+                guard let start = self.fileDragStart,
+                      hypot(event.locationInWindow.x - start.point.x,
+                            event.locationInWindow.y - start.point.y) > 4 else { return event }
+                self.fileDragStart = nil
+                guard let view = panel.contentView,
+                      let entry = self.entries.first(where: { $0.id == start.entryID })
+                else { return event }
+                let items = ClipboardEntryDrag.fileDraggingItems(
+                    for: entry, at: view.convert(event.locationInWindow, from: nil))
+                guard !items.isEmpty else { return event }
+                view.beginDraggingSession(with: items, event: event, source: self.fileDragSource)
+                self.trackCardDrag()
+                return nil
+            default:
+                self.fileDragStart = nil
+            }
+            return event
+        }
         modifierMonitor = NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self, weak panel] event in
             guard let self, let panel, event.window === panel else { return event }
             let held = event.modifierFlags.intersection(.deviceIndependentFlagsMask) == [.command]
@@ -1782,6 +1818,11 @@ final class ClipboardHistoryService: ObservableObject {
             NSEvent.removeMonitor(modifierMonitor)
             self.modifierMonitor = nil
         }
+        if let fileDragMonitor {
+            NSEvent.removeMonitor(fileDragMonitor)
+            self.fileDragMonitor = nil
+        }
+        fileDragStart = nil
         quickCommandHeld = false
     }
 
@@ -1790,6 +1831,14 @@ final class ClipboardHistoryService: ObservableObject {
         // The shelf shows its first card chosen until a search starts: Space
         // then types instead of previewing.
         quickSelectionIsVisible = quickLayout == .cards && quickQuery.isEmpty
+    }
+
+    func noteHoveredQuickEntry(_ id: UUID, hovering: Bool) {
+        if hovering {
+            quickHoveredEntryID = id
+        } else if quickHoveredEntryID == id {
+            quickHoveredEntryID = nil
+        }
     }
 
     /// A click on a card of the shelf chooses it; a double click pastes.
@@ -1815,6 +1864,30 @@ final class ClipboardHistoryService: ObservableObject {
         hideHistoryWindow()
         SettingsRouter.shared.page = .clipboard
         (NSApp.delegate as? AppDelegate)?.openSettingsWindow()
+    }
+
+    /// A card dragged out of the shelf takes the shelf away with it, so
+    /// whatever lies under it can take the drop.
+    fileprivate func trackCardDrag() {
+        cardDragTimer?.invalidate()
+        guard quickLayout == .cards else { return }
+        cardDragTimer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30, repeats: true) { [weak self] timer in
+            guard let self else {
+                timer.invalidate()
+                return
+            }
+            guard NSEvent.pressedMouseButtons & 1 != 0, let panel = self.panel, panel.isVisible,
+                  !self.shelfIsSlidingOut else {
+                timer.invalidate()
+                self.cardDragTimer = nil
+                return
+            }
+            if !Self.mouseIsInside(panel) {
+                timer.invalidate()
+                self.cardDragTimer = nil
+                self.hideHistoryWindow()
+            }
+        }
     }
 
     private var quickBatchEntries: [ClipboardHistoryEntry] {
@@ -2089,6 +2162,28 @@ private final class ClipboardPanelSizeLimit: NSObject, NSWindowDelegate {
             NSSize(width: max(minimum.width, frameSize.width),
                    height: max(minimum.height, frameSize.height)),
             visibleFrame: visibleFrame(sender))
+    }
+}
+
+// MARK: - Dragging entries
+
+extension ClipboardHistoryService {
+    func dragItemProvider(for entry: ClipboardHistoryEntry) -> NSItemProvider {
+        trackCardDrag()
+        return ClipboardEntryDrag.provider(for: entry, imageDirectory: ClipboardImageStore.directory)
+    }
+
+    /// Puts a card dropped on another card in front of it.
+    func moveEntry(_ id: UUID, before targetID: UUID) {
+        guard let moved = ClipboardHistoryEditing.movedEntries(entries, moving: id, before: targetID) else { return }
+        entries = moved
+        save()
+    }
+
+    /// Files an entry that arrived by drag under a group.
+    func fileDraggedEntry(_ id: UUID, in pinboardID: UUID) {
+        guard let entry = entries.first(where: { $0.id == id }) else { return }
+        file(entry, in: pinboardID)
     }
 }
 

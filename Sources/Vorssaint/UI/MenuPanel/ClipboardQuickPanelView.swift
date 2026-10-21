@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Vorssaint
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ClipboardQuickPanelView: View {
     @ObservedObject private var l10n = L10n.shared
@@ -17,6 +18,9 @@ struct ClipboardQuickPanelView: View {
     @State private var searchExpanded = false
     @State private var creatingPinboard = false
     @State private var editingPinboardID: UUID?
+    /// The tab a dragged card is over: a group's id, or `newGroupDropKey`.
+    @State private var dropTargetKey: String?
+    private static let newGroupDropKey = "new-group"
 
     private var text: ClipboardFeatureStrings {
         FeatureStrings.clipboard(l10n.language)
@@ -135,6 +139,20 @@ struct ClipboardQuickPanelView: View {
                 .disabled(history.pinboards.count >= ClipboardPinboard.limit)
                 .help(text.pinboardNew)
                 .accessibilityLabel(text.pinboardNew)
+                .background(Circle().fill(dropHighlight(Self.newGroupDropKey)))
+                .onDrop(of: [ClipboardEntryDrag.entryType],
+                        isTargeted: dropTargeting(Self.newGroupDropKey)) { providers in
+                    guard history.pinboards.count < ClipboardPinboard.limit else { return false }
+                    // A card dropped on + starts a group of its own, named in
+                    // turn and opened for renaming at once.
+                    return ClipboardEntryDrag.loadEntryID(from: providers) { id in
+                        let name = String(format: text.pinboardDefaultNameFormat, history.pinboards.count + 1)
+                        guard let board = history.createPinboard(named: name) else { return }
+                        history.fileDraggedEntry(id, in: board.id)
+                        history.quickPinboardID = board.id
+                        DispatchQueue.main.async { editingPinboardID = board.id }
+                    }
+                }
                 .popover(isPresented: $creatingPinboard, arrowEdge: .top) {
                     PinboardEditor(text: text, name: "",
                                    tint: ClipboardPinboard.nextTint(after: history.pinboards),
@@ -251,10 +269,18 @@ struct ClipboardQuickPanelView: View {
             .padding(.horizontal, 10)
             .frame(height: 26)
             .background(Capsule(style: .continuous).fill(selected ? Color.primary.opacity(0.12) : .clear))
+            .background(Capsule(style: .continuous).fill(dropHighlight(board?.id.uuidString)))
             .contentShape(Capsule(style: .continuous))
         }
         .buttonStyle(.plain)
         .foregroundStyle(selected ? Color.primary : Color.secondary)
+        .onDrop(of: [ClipboardEntryDrag.entryType],
+                isTargeted: dropTargeting(board?.id.uuidString)) { providers in
+            guard let board else { return false }
+            return ClipboardEntryDrag.loadEntryID(from: providers) { id in
+                history.fileDraggedEntry(id, in: board.id)
+            }
+        }
         .contextMenu {
             if let board {
                 Button(text.rename) { editingPinboardID = board.id }
@@ -274,6 +300,22 @@ struct ClipboardQuickPanelView: View {
                 }
             }
         }
+    }
+
+    private func dropTargeting(_ key: String?) -> Binding<Bool> {
+        Binding(get: { key != nil && dropTargetKey == key },
+                set: { targeted in
+                    guard let key else { return }
+                    if targeted {
+                        dropTargetKey = key
+                    } else if dropTargetKey == key {
+                        dropTargetKey = nil
+                    }
+                })
+    }
+
+    private func dropHighlight(_ key: String?) -> Color {
+        key != nil && dropTargetKey == key ? Color.accentColor.opacity(0.28) : .clear
     }
 
     private var listToolbar: some View {
@@ -632,6 +674,8 @@ private struct QuickEntryView: View, Equatable {
     let previewSelection: QuickPreviewSelection
     @State private var isHovered = false
     @State private var previewIsEditingHere = false
+    /// A card dragged over this one: it will land in front of it.
+    @State private var reorderTargeted = false
     /// The pane follows a row only once the pointer has rested on it: while
     /// rows stream under a still pointer during a scroll, every one of them
     /// would otherwise redraw the pane, and a long entry costs a frame or two
@@ -669,6 +713,7 @@ private struct QuickEntryView: View, Equatable {
         .contentShape(Rectangle())
         .contextMenu { entryActions(entry) }
         .onHover { hovering in
+            history.noteHoveredQuickEntry(entry.id, hovering: hovering)
             // A row arriving under a pointer that has not moved since the
             // arrow keys took over is not a hover.
             if hovering, NSEvent.mouseLocation == history.keyboardSelectionPointer { return }
@@ -701,6 +746,28 @@ private struct QuickEntryView: View, Equatable {
             ClipboardEntryPreviewSidebar(text: text, entry: entry, isEditing: $previewIsEditingHere,
                                          onClose: { history.setQuickPreviewPresented(false) })
                 .frame(width: 520, height: 420)
+        }
+        // Out to Finder or another app, or onto a group tab of the shelf.
+        .onDrag { history.dragItemProvider(for: entry) }
+        .onDrop(of: [ClipboardEntryDrag.entryType], isTargeted: $reorderTargeted) { providers in
+            // Cards are ordered by hand only where the order is the user's:
+            // a group, or the pinned run of the whole history.
+            guard !isRow, canReorderEntries, entry.isPinned else { return false }
+            return ClipboardEntryDrag.loadEntryID(from: providers) { id in
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+                    history.moveEntry(id, before: entry.id)
+                }
+            }
+        }
+        .overlay(alignment: .leading) {
+            if reorderTargeted, !isRow, canReorderEntries, entry.isPinned {
+                Capsule(style: .continuous)
+                    .fill(Color.accentColor)
+                    .frame(width: 4)
+                    .padding(.vertical, 8)
+                    .offset(x: -11)
+                    .allowsHitTesting(false)
+            }
         }
         .modifier(EntryClicks(pastesOnDoubleClick: !isRow,
                               onClick: { activate(entry) },
