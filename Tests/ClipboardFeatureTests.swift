@@ -561,6 +561,15 @@ enum ClipboardFeatureTests {
                 && ClipboardEntryDrag.fileDraggingItems(
                     for: ClipboardHistoryEntry(text: "", kind: .files, filePaths: ["/bin/ls"]), at: .zero).isEmpty,
                "a card of several files drags each of them; a single file keeps the ordinary drag")
+        // A running paste stack leads the closed island, opens the clipboard
+        // page, and is named in every language.
+        suite.expect(NotchSupport.compactActivities(timer: true, downloads: false, agents: false, calendar: false,
+                                                    music: true, pasteStack: true).first == .pasteStack
+                && !NotchSupport.compactActivities(timer: true, downloads: false, agents: false, calendar: false,
+                                                   music: true).contains(.pasteStack)
+                && NotchCompactActivity.pasteStack.module == .clipboard
+                && AppLanguage.allCases.allSatisfy { !NotchCompactActivity.pasteStack.title($0).isEmpty },
+               "a paste stack leads the closed island only while it runs and opens the clipboard")
         // A card shows a link only for an entry that is one web address.
         suite.expect(ClipboardHistoryEntry(text: "  https://example.com/home  ").linkURL?.host == "example.com"
                 && ClipboardHistoryEntry(text: "http://example.com/a?b=c").linkURL != nil,
@@ -1129,6 +1138,10 @@ enum ClipboardFeatureTests {
                    "\(language.rawValue) clipboard card names are localized")
             suite.expect(!clipboardStrings.linkPreviewsToggle.isEmpty && !clipboardStrings.linkPreviewsCaption.isEmpty,
                    "\(language.rawValue) clipboard link previews are localized")
+            suite.expect([clipboardStrings.pasteStackTitle, clipboardStrings.pasteStackEnd,
+                          clipboardStrings.pasteStackAdd].allSatisfy { !$0.isEmpty }
+                   && String(format: clipboardStrings.pasteStackRemainingFormat, 2).contains("2"),
+                   "\(language.rawValue) the clipboard paste stack is localized")
             let layoutStrings = FeatureStrings.windowLayout(language)
             suite.expect(!layoutStrings.sixths.isEmpty
                    && !layoutStrings.topLeftSixth.isEmpty
