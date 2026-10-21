@@ -19,6 +19,7 @@ struct ClipboardSettings: View {
     @AppStorage(DefaultsKey.clipboardHistoryShortcutEnabled) private var shortcutEnabled = true
     @AppStorage(DefaultsKey.clipboardHistoryLayout) private var historyLayout = ClipboardHistoryLayout.list
     @AppStorage(DefaultsKey.clipboardHistoryMenuBarPreview) private var menuBarPreview = false
+    @AppStorage(DefaultsKey.clipboardHistorySyncEnabled) private var syncEnabled = false
     @AppStorage(DefaultsKey.clipboardHistoryMenuBarPreviewLength)
     private var menuBarPreviewLength = Defaults.defaultClipboardMenuBarPreviewLength
     @AppStorage(DefaultsKey.panelUtilityClipboard) private var showInPanel = true
@@ -38,6 +39,10 @@ struct ClipboardSettings: View {
         FeatureStrings.clipboardRetention(l10n.language)
     }
 
+    private var syncText: ClipboardSyncStrings {
+        FeatureStrings.clipboardSync(l10n.language)
+    }
+
     var body: some View {
         Form {
             if AppFeature.clipboardHistory.isAvailable {
@@ -46,10 +51,10 @@ struct ClipboardSettings: View {
                         .onChange(of: enabled) { _, _ in
                             ClipboardHistoryService.shared.syncWithPreferences()
                         }
-                    Text(text.caption)
+                    Text(enabled && syncEnabled ? syncText.historyCaption : text.caption)
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    Text(text.localNote)
+                    Text(enabled && syncEnabled ? syncText.localNote : text.localNote)
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                     if enabled, history.isRunning {
@@ -92,6 +97,8 @@ struct ClipboardSettings: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+
+                ClipboardSyncSettingsSection(historyEnabled: enabled)
 
                 // Its own section because it is the one setting here that keeps
                 // working with capture off: the panel entry stays, saying so,
