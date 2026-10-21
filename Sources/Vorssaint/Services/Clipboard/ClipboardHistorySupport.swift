@@ -164,6 +164,10 @@ struct ClipboardHistoryEntry: Codable, Equatable, Identifiable {
     /// A name the user gave the entry, shown in place of its kind and
     /// matched by the search.
     var title: String?
+    /// The RTF a text copy came with, kept beside the history so its card can
+    /// show the formatting and a paste can bring it back. Its text stays the
+    /// plain `text`, which the search and every plain paste read.
+    var richTextFile: String?
 
     init(id: UUID = UUID(),
          text: String,
@@ -299,6 +303,7 @@ struct ClipboardHistoryEntry: Codable, Equatable, Identifiable {
         case sourceBundleID
         case pinboardID
         case title
+        case richTextFile
     }
 
     init(from decoder: Decoder) throws {
@@ -317,6 +322,7 @@ struct ClipboardHistoryEntry: Codable, Equatable, Identifiable {
         sourceBundleID = try container.decodeIfPresent(String.self, forKey: .sourceBundleID)
         pinboardID = try container.decodeIfPresent(UUID.self, forKey: .pinboardID)
         title = try container.decodeIfPresent(String.self, forKey: .title)
+        richTextFile = try container.decodeIfPresent(String.self, forKey: .richTextFile)
     }
 }
 
@@ -1476,5 +1482,102 @@ final class ClipboardFileDragSource: NSObject, NSDraggingSource {
     func draggingSession(_ session: NSDraggingSession,
                          sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
         .copy
+    }
+}
+
+/// The RTF that came with text copies, one file per entry beside the
+/// history, and the formatted text a card shows from it.
+enum ClipboardRichTextStore {
+    /// A formatted copy past this is kept as plain text only.
+    static let maxBytes = 1_000_000
+
+    static var directory: URL? {
+        PrivateFileStore.containerURL?.appendingPathComponent("ClipboardRichText", isDirectory: true)
+    }
+
+    private static let cache: NSCache<NSString, NSAttributedString> = {
+        let cache = NSCache<NSString, NSAttributedString>()
+        cache.countLimit = 64
+        return cache
+    }()
+
+    /// Writes the RTF for an entry and returns its file name, or nil when it
+    /// is too big, unreadable as RTF, or cannot be written.
+    static func store(_ data: Data, for id: UUID) -> String? {
+        guard data.count <= maxBytes, NSAttributedString(rtf: data, documentAttributes: nil) != nil,
+              let directory, PrivateFileStore.createDirectory(at: directory) else { return nil }
+        let name = "\(id.uuidString).rtf"
+        do {
+            try data.write(to: directory.appendingPathComponent(name), options: .atomic)
+        } catch {
+            return nil
+        }
+        cache.removeObject(forKey: name as NSString)
+        displayCache.removeObject(forKey: name as NSString)
+        return name
+    }
+
+    static func attributedString(named name: String) -> NSAttributedString? {
+        if let cached = cache.object(forKey: name as NSString) { return cached }
+        guard let url = directory?.appendingPathComponent((name as NSString).lastPathComponent),
+              let data = try? Data(contentsOf: url), data.count <= maxBytes,
+              let text = NSAttributedString(rtf: data, documentAttributes: nil) else { return nil }
+        cache.setObject(text, forKey: name as NSString)
+        return text
+    }
+
+    private static let displayCache: NSCache<NSString, NSAttributedString> = {
+        let cache = NSCache<NSString, NSAttributedString>()
+        cache.countLimit = 128
+        return cache
+    }()
+
+    /// The card's version of a stored copy, made once and kept.
+    static func displayString(named name: String) -> NSAttributedString? {
+        if let shown = displayCache.object(forKey: name as NSString) { return shown }
+        guard let rich = attributedString(named: name) else { return nil }
+        let shown = displayString(rich)
+        displayCache.setObject(shown, forKey: name as NSString)
+        return shown
+    }
+
+    static func remove(named name: String) {
+        cache.removeObject(forKey: name as NSString)
+        displayCache.removeObject(forKey: name as NSString)
+        guard let url = directory?.appendingPathComponent((name as NSString).lastPathComponent) else { return }
+        try? FileManager.default.removeItem(at: url)
+    }
+
+    /// Removes the files no entry points at any more.
+    static func cleanup(keeping names: Set<String>) {
+        guard let directory,
+              let files = try? FileManager.default.contentsOfDirectory(atPath: directory.path) else { return }
+        for file in files where file.hasSuffix(".rtf") && !names.contains(file) {
+            remove(named: file)
+        }
+    }
+
+    /// The copy as a card shows it: its own fonts, weights and vivid colors,
+    /// at a size that fits the card, while black, gray and white text takes
+    /// the label color so it reads in light and dark alike. Highlights go.
+    static func displayString(_ source: NSAttributedString, maxCharacters: Int = 800) -> NSAttributedString {
+        let length = min(source.length, maxCharacters)
+        let text = NSMutableAttributedString(attributedString:
+            source.attributedSubstring(from: NSRange(location: 0, length: length)))
+        let whole = NSRange(location: 0, length: text.length)
+        text.removeAttribute(.backgroundColor, range: whole)
+        text.enumerateAttribute(.foregroundColor, in: whole) { value, range, _ in
+            let color = (value as? NSColor)?.usingColorSpace(.sRGB)
+            if color.map({ $0.saturationComponent < 0.2 }) ?? true {
+                text.addAttribute(.foregroundColor, value: NSColor.labelColor, range: range)
+            }
+        }
+        text.enumerateAttribute(.font, in: whole) { value, range, _ in
+            let font = (value as? NSFont) ?? NSFont.systemFont(ofSize: 12)
+            let size = min(max(font.pointSize * 0.9, 10), 17)
+            text.addAttribute(.font, value: NSFont(descriptor: font.fontDescriptor, size: size)
+                                  ?? NSFont.systemFont(ofSize: size), range: range)
+        }
+        return text
     }
 }

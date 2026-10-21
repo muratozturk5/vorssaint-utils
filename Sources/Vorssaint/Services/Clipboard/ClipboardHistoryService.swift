@@ -233,6 +233,10 @@ final class ClipboardHistoryService: ObservableObject {
         if list.count == 1, let entry = list.first {
             switch entry.kind {
             case .text:
+                if let name = entry.richTextFile,
+                   let rich = ClipboardRichTextStore.attributedString(named: name) {
+                    return .rich(rich, plain: entry.text)
+                }
                 return .text(entry.text)
             case .image:
                 guard let name = entry.imageFile,
@@ -387,6 +391,7 @@ final class ClipboardHistoryService: ObservableObject {
         if entries[index].text == text { return true }
         let previousEntries = entries
         entries[index].text = text
+        entries[index].richTextFile = nil
         trimToLimit()
         guard let edited = entries.first(where: { $0.id == entry.id }),
               ClipboardHistoryEditing.preservesPinnedEntries(from: previousEntries, in: entries),
@@ -813,7 +818,7 @@ final class ClipboardHistoryService: ObservableObject {
         // that closes it may already have taken them away.
         let historyPanelIsKey = historyPanelClosing || panel?.isKeyWindow == true
         GeneralPasteboardAccess.shared.async(timeout: Self.pasteboardTimeout, { isExpired
-            -> (changeCount: Int, content: CapturedContent?, declaredSource: String?, remote: Bool)? in
+            -> (changeCount: Int, content: CapturedContent?, declaredSource: String?, remote: Bool, rich: Data?)? in
             let changeCount = NSPasteboard.general.changeCount
             guard !isExpired() else { return nil }
             // Read during a baseline too, not only on a detected change: a
@@ -825,9 +830,16 @@ final class ClipboardHistoryService: ObservableObject {
             let content: CapturedContent? = (baseline || changeCount != sinceChangeCount)
                 ? Self.readPasteboard(includeImagesFiles: includeImagesFiles)
                 : nil
+            var rich: Data?
+            if case .text = content {
+                rich = NSPasteboard.general.data(forType: .rtf).flatMap {
+                    $0.count <= ClipboardRichTextStore.maxBytes ? $0 : nil
+                }
+            }
             return (changeCount, content,
                     content == nil ? nil : NSPasteboard.general.string(forType: .source),
-                    content != nil && NSPasteboard.general.types?.contains(.remoteClipboard) == true)
+                    content != nil && NSPasteboard.general.types?.contains(.remoteClipboard) == true,
+                    rich)
         }, then: { [weak self] result in
             guard let self else { return }
             guard let result else {
@@ -869,7 +881,8 @@ final class ClipboardHistoryService: ObservableObject {
             switch content {
             case .files(let paths): self.promoteFiles(paths, source: source.bundleID, keepsSource: keepsSource)
             case .image(let image): self.promoteImage(image, source: source.bundleID, keepsSource: keepsSource)
-            case .text(let text): self.promote(text, source: source.bundleID, keepsSource: keepsSource)
+            case .text(let text):
+                self.promote(text, rich: result.rich, source: source.bundleID, keepsSource: keepsSource)
             }
         }, didFinish: { [weak self] _ in
             self?.captureState.finish()
@@ -1033,7 +1046,7 @@ final class ClipboardHistoryService: ObservableObject {
         return (scheme == "http" || scheme == "https") && url.host != nil
     }
 
-    private func promote(_ raw: String, source: String?, keepsSource: Bool) {
+    private func promote(_ raw: String, rich: Data? = nil, source: String?, keepsSource: Bool) {
         let text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty, text.count <= ClipboardHistoryEditing.maxCharacters else { return }
         if UserDefaults.standard.bool(forKey: DefaultsKey.clipboardHistoryFilterSensitiveText),
@@ -1043,16 +1056,19 @@ final class ClipboardHistoryService: ObservableObject {
 
         let existing = entries.first(where: { $0.kind == .text && $0.text == text })
         entries.removeAll { $0.kind == .text && $0.text == text }
+        // The formatting is the latest copy's: taken again as plain text,
+        // the entry drops what an earlier formatted copy left.
+        if let old = existing?.richTextFile { ClipboardRichTextStore.remove(named: old) }
         if let existing {
-            insertPromoted(ClipboardHistoryEditing.keepingUserChoices(
-                                of: existing,
-                                in: ClipboardHistoryEntry(id: existing.id,
-                                                          text: text,
-                                                          copiedAt: Date(),
-                                                          pinnedAt: existing.pinnedAt)),
-                           source: keepsSource ? existing.sourceBundleID : source)
+            var recopied = ClipboardHistoryEditing.keepingUserChoices(
+                of: existing, in: ClipboardHistoryEntry(id: existing.id, text: text, copiedAt: Date(),
+                                                        pinnedAt: existing.pinnedAt))
+            recopied.richTextFile = rich.flatMap { ClipboardRichTextStore.store($0, for: existing.id) }
+            insertPromoted(recopied, source: keepsSource ? existing.sourceBundleID : source)
         } else {
-            insertPromoted(ClipboardHistoryEntry(text: text), source: source)
+            var entry = ClipboardHistoryEntry(text: text)
+            entry.richTextFile = rich.flatMap { ClipboardRichTextStore.store($0, for: entry.id) }
+            insertPromoted(entry, source: source)
         }
         normalizeEntryOrder()
         trimToLimit()
@@ -1178,6 +1194,7 @@ final class ClipboardHistoryService: ObservableObject {
         // Sweep image files that lost their entry (crash between write and save).
         ClipboardImageStore.cleanup(keeping: Set(entries.compactMap(\.imageFile)),
                                     filePaths: Set(entries.flatMap(\.filePaths)))
+        ClipboardRichTextStore.cleanup(keeping: Set(entries.compactMap(\.richTextFile)))
         // A history read from the legacy blob migrates right away instead of
         // waiting for the next copy: launching once is enough to leave
         // UserDefaults behind.
@@ -1220,6 +1237,7 @@ final class ClipboardHistoryService: ObservableObject {
                     }
                     ClipboardImageStore.cleanup(keeping: Set(self.entries.compactMap(\.imageFile)),
                                                 filePaths: Set(self.entries.flatMap(\.filePaths)))
+                    ClipboardRichTextStore.cleanup(keeping: Set(self.entries.compactMap(\.richTextFile)))
                 }
             }
             guard let url = Self.storeURL else {

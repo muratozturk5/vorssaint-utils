@@ -540,6 +540,21 @@ enum ClipboardFeatureTests {
         suite.expect(ClipboardHistoryEditing.keepingUserChoices(
                         of: named, in: ClipboardHistoryEntry(id: named.id, text: "Named")).pinboardID == nil,
                "only a pinned entry stays in a group")
+        // A formatted copy shows its own fonts and vivid colors, while black
+        // text takes the label color so it reads in dark mode too.
+        let formatted = NSMutableAttributedString(string: "Title body", attributes: [
+            .font: NSFont.boldSystemFont(ofSize: 40), .foregroundColor: NSColor.black,
+            .backgroundColor: NSColor.yellow])
+        formatted.addAttribute(.foregroundColor, value: NSColor.systemRed, range: NSRange(location: 6, length: 4))
+        let shown = ClipboardRichTextStore.displayString(formatted)
+        let titleColor = shown.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor
+        let bodyColor = shown.attribute(.foregroundColor, at: 7, effectiveRange: nil) as? NSColor
+        let shownFont = shown.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+        suite.expect(titleColor == NSColor.labelColor && bodyColor == NSColor.systemRed
+                && shown.attribute(.backgroundColor, at: 0, effectiveRange: nil) == nil
+                && (shownFont?.pointSize ?? 0) <= 17
+                && shownFont?.fontDescriptor.symbolicTraits.contains(.bold) == true,
+               "formatted text keeps its weight and vivid colors at a card's size, with black made adaptive")
         // A card of several files drags them all, the first carrying its id.
         let severalFiles = ClipboardHistoryEntry(text: "", kind: .files, filePaths: ["/bin/ls", "/bin/cat"])
         suite.expect(ClipboardEntryDrag.fileDraggingItems(for: severalFiles, at: .zero).count == 2
