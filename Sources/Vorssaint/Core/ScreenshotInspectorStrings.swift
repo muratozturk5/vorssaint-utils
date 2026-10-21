@@ -22,6 +22,7 @@ struct ScreenshotInspectorStrings {
     let resizeCaption: String
     let overlayOpacityLabel: String
     let comparisonGIF: String
+    let zoomToSelection: String
 }
 
 extension FeatureStrings {
@@ -64,7 +65,8 @@ extension ScreenshotInspectorStrings {
         resizeApply: "Resize",
         resizeCaption: "Marks become part of the picture. Undo brings them back.",
         overlayOpacityLabel: "Opacity",
-        comparisonGIF: "Save before and after GIF"
+        comparisonGIF: "Save before and after GIF",
+        zoomToSelection: "Zoom to selection"
     )
 
     static let ptBR = ScreenshotInspectorStrings(
@@ -84,7 +86,8 @@ extension ScreenshotInspectorStrings {
         resizeApply: "Redimensionar",
         resizeCaption: "As marcações passam a fazer parte da imagem. Desfazer as traz de volta.",
         overlayOpacityLabel: "Opacidade",
-        comparisonGIF: "Salvar GIF de antes e depois"
+        comparisonGIF: "Salvar GIF de antes e depois",
+        zoomToSelection: "Ampliar a seleção"
     )
 
     static let tr = ScreenshotInspectorStrings(
@@ -104,7 +107,8 @@ extension ScreenshotInspectorStrings {
         resizeApply: "Boyutlandır",
         resizeCaption: "Notlar görselin parçası olur. Geri al onları geri getirir.",
         overlayOpacityLabel: "Opaklık",
-        comparisonGIF: "Önce ve sonra GIF’ini kaydet"
+        comparisonGIF: "Önce ve sonra GIF’ini kaydet",
+        zoomToSelection: "Seçime yakınlaştır"
     )
 
     static let ru = ScreenshotInspectorStrings(
@@ -124,7 +128,8 @@ extension ScreenshotInspectorStrings {
         resizeApply: "Изменить размер",
         resizeCaption: "Пометки станут частью изображения. Отмена вернёт их.",
         overlayOpacityLabel: "Непрозрачность",
-        comparisonGIF: "Сохранить GIF до и после"
+        comparisonGIF: "Сохранить GIF до и после",
+        zoomToSelection: "Увеличить выделение"
     )
 
     static let es = ScreenshotInspectorStrings(
@@ -144,7 +149,8 @@ extension ScreenshotInspectorStrings {
         resizeApply: "Redimensionar",
         resizeCaption: "Las marcas pasan a formar parte de la imagen. Deshacer las recupera.",
         overlayOpacityLabel: "Opacidad",
-        comparisonGIF: "Guardar GIF de antes y después"
+        comparisonGIF: "Guardar GIF de antes y después",
+        zoomToSelection: "Ampliar la selección"
     )
 
     static let sk = ScreenshotInspectorStrings(
@@ -164,7 +170,8 @@ extension ScreenshotInspectorStrings {
         resizeApply: "Zmeniť veľkosť",
         resizeCaption: "Značky sa stanú súčasťou obrázka. Späť ich vráti.",
         overlayOpacityLabel: "Nepriehľadnosť",
-        comparisonGIF: "Uložiť GIF pred a po"
+        comparisonGIF: "Uložiť GIF pred a po",
+        zoomToSelection: "Priblížiť výber"
     )
 
     static let de = ScreenshotInspectorStrings(
@@ -184,7 +191,8 @@ extension ScreenshotInspectorStrings {
         resizeApply: "Größe ändern",
         resizeCaption: "Markierungen werden Teil des Bilds. Widerrufen holt sie zurück.",
         overlayOpacityLabel: "Deckkraft",
-        comparisonGIF: "Vorher-nachher-GIF sichern"
+        comparisonGIF: "Vorher-nachher-GIF sichern",
+        zoomToSelection: "Auf Auswahl zoomen"
     )
 
     static let fr = ScreenshotInspectorStrings(
@@ -204,7 +212,8 @@ extension ScreenshotInspectorStrings {
         resizeApply: "Redimensionner",
         resizeCaption: "Les annotations font partie de l’image. Annuler les rétablit.",
         overlayOpacityLabel: "Opacité",
-        comparisonGIF: "Enregistrer un GIF avant et après"
+        comparisonGIF: "Enregistrer un GIF avant et après",
+        zoomToSelection: "Zoomer sur la sélection"
     )
 
     static let it = ScreenshotInspectorStrings(
@@ -224,7 +233,8 @@ extension ScreenshotInspectorStrings {
         resizeApply: "Ridimensiona",
         resizeCaption: "Le annotazioni diventano parte dell’immagine. Annulla le riporta indietro.",
         overlayOpacityLabel: "Opacità",
-        comparisonGIF: "Salva GIF prima e dopo"
+        comparisonGIF: "Salva GIF prima e dopo",
+        zoomToSelection: "Ingrandisci la selezione"
     )
 
     static let ja = ScreenshotInspectorStrings(
@@ -244,7 +254,8 @@ extension ScreenshotInspectorStrings {
         resizeApply: "サイズを変更",
         resizeCaption: "注釈は画像の一部になります。取り消すと元に戻ります。",
         overlayOpacityLabel: "不透明度",
-        comparisonGIF: "ビフォーアフター GIF を保存"
+        comparisonGIF: "ビフォーアフター GIF を保存",
+        zoomToSelection: "選択範囲にズーム"
     )
 
     static let ko = ScreenshotInspectorStrings(
@@ -264,7 +275,8 @@ extension ScreenshotInspectorStrings {
         resizeApply: "크기 조절",
         resizeCaption: "주석이 이미지의 일부가 됩니다. 실행 취소하면 되돌아옵니다.",
         overlayOpacityLabel: "불투명도",
-        comparisonGIF: "전후 비교 GIF 저장"
+        comparisonGIF: "전후 비교 GIF 저장",
+        zoomToSelection: "선택 영역으로 확대"
     )
 
     static let zhHans = ScreenshotInspectorStrings(
@@ -284,7 +296,8 @@ extension ScreenshotInspectorStrings {
         resizeApply: "调整大小",
         resizeCaption: "标注将合并到图片中。撤销可恢复。",
         overlayOpacityLabel: "不透明度",
-        comparisonGIF: "存储前后对比 GIF"
+        comparisonGIF: "存储前后对比 GIF",
+        zoomToSelection: "缩放到所选内容"
     )
 
     static let zhTW = ScreenshotInspectorStrings(
@@ -304,7 +317,8 @@ extension ScreenshotInspectorStrings {
         resizeApply: "調整大小",
         resizeCaption: "標註會合併到圖片中。還原可將其恢復。",
         overlayOpacityLabel: "不透明度",
-        comparisonGIF: "儲存前後對比 GIF"
+        comparisonGIF: "儲存前後對比 GIF",
+        zoomToSelection: "縮放至所選範圍"
     )
 
     static let zhHK = ScreenshotInspectorStrings(
@@ -324,7 +338,8 @@ extension ScreenshotInspectorStrings {
         resizeApply: "調整大小",
         resizeCaption: "標註會合併到圖片中。還原可將其恢復。",
         overlayOpacityLabel: "不透明度",
-        comparisonGIF: "儲存前後對比 GIF"
+        comparisonGIF: "儲存前後對比 GIF",
+        zoomToSelection: "縮放至所選範圍"
     )
 
     static let uk = ScreenshotInspectorStrings(
@@ -344,6 +359,7 @@ extension ScreenshotInspectorStrings {
         resizeApply: "Змінити розмір",
         resizeCaption: "Позначки стануть частиною зображення. Скасування поверне їх.",
         overlayOpacityLabel: "Непрозорість",
-        comparisonGIF: "Зберегти GIF до і після"
+        comparisonGIF: "Зберегти GIF до і після",
+        zoomToSelection: "Збільшити виділення"
     )
 }

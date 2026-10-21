@@ -298,3 +298,35 @@ struct ScreenshotResizePopover: View {
         .accessibilityLabel(label)
     }
 }
+
+/// Hands the canvas's scroll view to the inspector, for panning and for
+/// bringing a zoomed area to the middle.
+struct ScreenshotScrollViewLocator: NSViewRepresentable {
+    let found: (NSScrollView?) -> Void
+
+    func makeNSView(context: Context) -> LocatorView {
+        let view = LocatorView()
+        view.found = found
+        return view
+    }
+
+    func updateNSView(_ nsView: LocatorView, context: Context) {
+        nsView.found = found
+        nsView.report()
+    }
+
+    final class LocatorView: NSView {
+        var found: ((NSScrollView?) -> Void)?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            report()
+        }
+
+        func report() {
+            found?(enclosingScrollView)
+        }
+
+        override func hitTest(_ point: NSPoint) -> NSView? { nil }
+    }
+}

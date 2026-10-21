@@ -1557,7 +1557,7 @@ enum ScreenshotSupport {
             if shortcut.modifiers.contains(.command) {
                 // The editor's Command branch also accepts extra modifiers.
                 return [kVK_ANSI_C, kVK_ANSI_V, kVK_ANSI_S, kVK_ANSI_Z, kVK_ANSI_P,
-                        kVK_ANSI_0, kVK_ANSI_1, kVK_ANSI_Equal, kVK_ANSI_Minus,
+                        kVK_ANSI_0, kVK_ANSI_1, kVK_ANSI_2, kVK_ANSI_Equal, kVK_ANSI_Minus,
                         kVK_Delete, kVK_ForwardDelete, kVK_ANSI_W, kVK_ANSI_Q].contains(key)
             }
             return !shortcut.modifiers.hasPrimaryModifier

@@ -26,8 +26,11 @@ struct ScreenshotEditorView: View {
     @State private var footerHeight = ScreenshotSupport.editorWrappedFooterHeight
     @State private var toolOptionsShown = false
     @State private var sharing = false
-    /// A drag that marks a live measurement, not one a tool draws.
+    /// A drag that pans the canvas or marks a live measurement, not one a
+    /// tool draws.
     @State private var inspectionDrag = false
+    /// The canvas region last laid out, which Command-2 fits an area into.
+    @State private var canvasViewport = CGSize.zero
     @State private var resizePopoverShown = false
     @State private var sharedRecord: ScreenshotShareRecord?
     @State private var shareAnchor = ShelfSharePickerAnchor.Anchor()
@@ -90,6 +93,9 @@ struct ScreenshotEditorView: View {
         }
         .onAppear { keyboard.start() }
         .onDisappear { keyboard.stop() }
+        .onChange(of: model.zoomRequest) { _, request in
+            if let request { zoom(to: request.rect) }
+        }
         .sheet(item: $sharedRecord) { record in
             ScreenshotEditorSharedLinkView(record: record,
                                            strings: strings,
@@ -150,6 +156,8 @@ struct ScreenshotEditorView: View {
             }
             .scrollIndicators(.never)
             .frame(width: available.width, height: available.height, alignment: .topLeading)
+            .onAppear { canvasViewport = available }
+            .onChange(of: available) { _, size in canvasViewport = size }
             .overlay(alignment: .top) {
                 ScreenshotMeasureHint(inspector: model.inspector, rulerActive: model.tool == .ruler,
                                       strings: inspectorStrings)
@@ -281,6 +289,9 @@ struct ScreenshotEditorView: View {
                                          padding: model.backdropPaddingPixels, scale: model.scale)
                 .frame(width: canvasSize.width, height: canvasSize.height)
         }
+        .background(ScreenshotScrollViewLocator { [inspector = model.inspector] in
+            inspector.scrollView = $0
+        })
         .overlay(alignment: .topLeading) {
             textEditorOverlay(zoom: zoom)
         }
@@ -443,9 +454,10 @@ struct ScreenshotEditorView: View {
         DragGesture(minimumDistance: 0)
             .onChanged { value in
                 let point = imagePoint(from: value.location, zoom: zoom)
-                // A live measurement waits for its click; the tool never
-                // sees that drag.
-                if !dragInFlight, !inspectionDrag, model.inspector.liveMode != nil {
+                // Space pans and a live measurement waits for its click; the
+                // tool sees neither drag.
+                if !dragInFlight, !inspectionDrag,
+                   model.inspector.panning || model.inspector.liveMode != nil {
                     inspectionDrag = true
                     drag.begin(at: value.startLocation)
                 }
@@ -472,7 +484,7 @@ struct ScreenshotEditorView: View {
                 if inspectionDrag {
                     inspectionDrag = false
                     drag.update(to: value.location)
-                    if drag.isTap(for: .select) {
+                    if !model.inspector.panning, drag.isTap(for: .select) {
                         commitEditingTextIfNeeded()
                         model.imprintLiveMeasurement()
                     }
@@ -504,7 +516,28 @@ struct ScreenshotEditorView: View {
         return CGPoint(x: viewPoint.x / zoom - pad, y: viewPoint.y / zoom - pad)
     }
 
+    /// Fits an area of the capture in the canvas and brings it to the middle
+    /// once the canvas has laid out at the new zoom.
+    private func zoom(to rect: CGRect) {
+        let viewport = canvasViewport
+        guard let zoom = ScreenshotOutputSupport.zoomToFit(
+            rect, viewport: viewport, margin: 40, range: ScreenshotEditorModel.zoomRange) else { return }
+        model.zoomOverride = zoom
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            let pad = model.backdropPaddingPixels
+            let canvas = CGSize(width: contentPixelSize.width * zoom, height: contentPixelSize.height * zoom)
+            let insets = canvasInsets(available: viewport, canvas: canvas)
+            model.inspector.center(on: CGRect(x: insets.leading + (rect.minX + pad) * zoom,
+                                              y: insets.top + (rect.minY + pad) * zoom,
+                                              width: rect.width * zoom, height: rect.height * zoom))
+        }
+    }
+
     private func updateHoverCursor(at point: CGPoint) {
+        if model.inspector.panning {
+            NSCursor.openHand.set()
+            return
+        }
         if model.inspector.liveMode != nil {
             NSCursor.crosshair.set()
             return
@@ -1848,6 +1881,14 @@ struct ScreenshotEditorView: View {
             } action: {
                 model.zoomOverride = 1 / model.scale
             }
+            zoomButton(active: false, help: inspectorStrings.zoomToSelection + "  (⌘2)") {
+                Image(systemName: "plus.viewfinder")
+                    .font(.system(size: 11, weight: .medium))
+            } action: {
+                if !model.requestZoomToSelection() { NSSound.beep() }
+            }
+            .disabled(model.zoomTarget == nil)
+            .accessibilityLabel(inspectorStrings.zoomToSelection)
         }
         .padding(4)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9, style: .continuous))

@@ -31,6 +31,7 @@ enum ScreenshotSpotlightEditingTests {
     /// The pointer state the hover and the new marks read.
     final class Inspector {
         var unit = ScreenshotInspectionSupport.MeasureUnit.points
+        var panning = false
         var liveMode: ScreenshotInspectionSupport.LiveMode?
     }
 
@@ -215,8 +216,11 @@ enum ScreenshotSpotlightEditingTests {
         live.tool = .select
         live.inspector.liveMode = .distance(.horizontal)
         Bar(model: live).updateHoverCursor(at: CGPoint(x: 1, y: 1))
-        suite.expect(NSCursor.current === NSCursor.crosshair,
-               "the pointer shows a crosshair while measuring")
+        let measuringCursor = NSCursor.current
+        live.inspector.panning = true
+        Bar(model: live).updateHoverCursor(at: CGPoint(x: 1, y: 1))
+        suite.expect(measuringCursor === NSCursor.crosshair && NSCursor.current === NSCursor.openHand,
+               "the pointer shows a crosshair while measuring and a hand while Space pans")
         suite.expect(Bar(model: model(tool: .select, selected: .ruler)).showsColorControls
                 && Bar(model: model(tool: .magnifier, selected: .rect)).showsColorControls,
                "rulers and magnifiers take a color and a thickness")

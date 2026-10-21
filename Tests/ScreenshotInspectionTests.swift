@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Vorssaint
 
 import AppKit
+import Carbon.HIToolbox
 import ImageIO
 
 /// The screenshot editor's inspection rules, on synthetic pixels.
@@ -57,6 +58,7 @@ enum ScreenshotInspectionTests {
         tools(suite)
         rendering(suite)
         resizing(suite)
+        zooming(suite)
         comparison(suite)
         preferencesAndStrings(suite)
     }
@@ -302,6 +304,29 @@ enum ScreenshotInspectionTests {
         suite.expect(smaller?.width == 20 && smaller?.height == 10
                      && smaller.map { pixel($0, 2, 5).red < 40 && pixel($0, 17, 5).red > 215 } == true,
                      "resampling keeps what is where")
+    }
+
+    // MARK: - Zoom
+
+    static func zooming(_ suite: TestSuite) {
+        suite.expectClose(Double(Output.zoomToFit(CGRect(x: 0, y: 0, width: 100, height: 50),
+                                                  viewport: CGSize(width: 440, height: 440), margin: 20,
+                                                  range: 0.05...3) ?? 0), 3, "a small area fits up to the zoom limit")
+        suite.expectClose(Double(Output.zoomToFit(CGRect(x: 0, y: 0, width: 800, height: 200),
+                                                  viewport: CGSize(width: 440, height: 440), margin: 20,
+                                                  range: 0.05...3) ?? 0), 0.5, "a wide area fits its width")
+        suite.expect(Output.zoomToFit(.zero, viewport: CGSize(width: 10, height: 10), margin: 0, range: 0.1...2) == nil,
+                     "an empty area has no zoom")
+        suite.expect(Output.scrollOrigin(centering: CGRect(x: 500, y: 500, width: 100, height: 100),
+                                         viewport: CGSize(width: 200, height: 200),
+                                         content: CGSize(width: 1000, height: 1000)) == CGPoint(x: 450, y: 450)
+                     && Output.scrollOrigin(centering: CGRect(x: 0, y: 980, width: 10, height: 10),
+                                            viewport: CGSize(width: 200, height: 200),
+                                            content: CGSize(width: 1000, height: 1000)) == CGPoint(x: 0, y: 800),
+                     "the area lands in the middle, within the scrollable range")
+        suite.expect(ScreenshotSupport.Tool.isReservedEditorKey(GlobalShortcut(keyCode: Int64(kVK_ANSI_2),
+                                                                                modifiers: .command)),
+                     "Command-2 belongs to zoom to selection")
     }
 
     // MARK: - Comparison

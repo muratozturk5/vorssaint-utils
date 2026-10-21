@@ -17,6 +17,13 @@ final class ScreenshotEditorModel: ObservableObject, BackdropEditing {
     /// Pointer, live measurement and selection readings. Its own object, so a
     /// moving pointer redraws the readouts and never the whole canvas.
     let inspector = ScreenshotEditorInspector()
+    /// A request for the view to fit an area of the capture, in image pixels.
+    @Published private(set) var zoomRequest: ZoomRequest?
+
+    struct ZoomRequest: Equatable {
+        let id = UUID()
+        let rect: CGRect
+    }
     /// How dark a spotlight turns everything outside its regions,
     /// remembered between captures like the blur strength.
     @Published var spotlightDimStrength: CGFloat {
@@ -1491,6 +1498,38 @@ extension ScreenshotEditorModel {
         refreshDirtyState()
     }
 
+    /// What Command-2 fits in the window: the picked mark, otherwise the crop
+    /// selection, otherwise the selected words.
+    var zoomTarget: CGRect? {
+        if let selectedID, let selected = annotations.first(where: { $0.id == selectedID }) {
+            if selected.tool == .counter {
+                let diameter = ScreenshotSupport.counterDiameter(
+                    for: selected.renderReferenceSize ?? imageSize, scale: 1)
+                return CGRect(x: selected.rect.midX - diameter / 2, y: selected.rect.midY - diameter / 2,
+                              width: diameter, height: diameter)
+            }
+            if !selected.points.isEmpty, selected.tool != .text {
+                let xs = selected.points.map(\.x)
+                let ys = selected.points.map(\.y)
+                if let minX = xs.min(), let maxX = xs.max(), let minY = ys.min(), let maxY = ys.max() {
+                    return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+                        .insetBy(dx: -8 * scale, dy: -8 * scale)
+                }
+            }
+            return selected.rect.standardized
+        }
+        if tool == .crop, let cropDraft { return cropDraft }
+        let words = selectedWordIndexes.filter { textWords.indices.contains($0) }.map { textWords[$0].rect }
+        return words.dropFirst().reduce(words.first) { $0?.union($1) }
+    }
+
+    @discardableResult
+    func requestZoomToSelection() -> Bool {
+        guard let rect = zoomTarget, rect.width > 0, rect.height > 0 else { return false }
+        zoomRequest = ZoomRequest(rect: rect)
+        return true
+    }
+
     /// The capture without its pasted images, then with them, as a looping GIF.
     func comparisonGIFData() -> Data? {
         guard let frames = ScreenshotOutputSupport.comparisonFrames(annotations) else { return nil }
@@ -1508,8 +1547,10 @@ final class ScreenshotEditorController: NSObject, NSWindowDelegate {
     let model: ScreenshotEditorModel
     private var window: NSWindow?
     private var keyMonitor: Any?
+    private var keyUpMonitor: Any?
     private var scrollMonitor: Any?
     private var pointerMonitor: Any?
+    private var panMonitor: Any?
 
     var protectedWindowIDs: Set<CGWindowID> {
         guard let window, window.isVisible, window.windowNumber > 0 else { return [] }
@@ -1607,6 +1648,22 @@ final class ScreenshotEditorController: NSObject, NSWindowDelegate {
             }
             return event
         }
+        // Releasing Space ends panning, wherever the key goes up.
+        keyUpMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyUp) { [weak self] event in
+            if let self, event.keyCode == UInt16(kVK_Space), self.model.inspector.panning {
+                self.model.inspector.panning = false
+            }
+            return event
+        }
+        // A drag with Space held, or with the right button, moves the canvas.
+        panMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseDragged, .rightMouseDragged]) { [weak self] event in
+            guard let self, let window = self.window, event.windowNumber == window.windowNumber,
+                  event.type == .rightMouseDragged || self.model.inspector.panning
+            else { return event }
+            self.model.inspector.pan(by: CGSize(width: event.deltaX, height: event.deltaY))
+            return event.type == .rightMouseDragged ? nil : event
+        }
         // Control-scroll adjusts canvas zoom.
         scrollMonitor = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { [weak self] event in
             guard let self, let window = self.window,
@@ -1694,6 +1751,9 @@ final class ScreenshotEditorController: NSObject, NSWindowDelegate {
                 if flags.contains(.shift) { model.redo() } else { model.undo() }
                 return true
             case kVK_ANSI_P: pin(); return true
+            case kVK_ANSI_2:
+                if !model.requestZoomToSelection() { NSSound.beep() }
+                return true
             case kVK_Delete, kVK_ForwardDelete:
                 discardAndClose()
                 return true
@@ -1743,8 +1803,8 @@ final class ScreenshotEditorController: NSObject, NSWindowDelegate {
 
     // MARK: Inspection keys
 
-    /// The measuring and color keys. Each answers only where it means
-    /// something, so Tab still moves focus when the pointer is off the
+    /// The measuring, color and panning keys. Each answers only where it
+    /// means something, so Tab still moves focus when the pointer is off the
     /// capture and C or A type nothing while no area is selected.
     private func handleInspectionKey(_ key: Int, shift: Bool, isRepeat: Bool) -> Bool {
         let inspector = model.inspector
@@ -1768,6 +1828,9 @@ final class ScreenshotEditorController: NSObject, NSWindowDelegate {
         case kVK_ANSI_A where !shift:
             guard model.tool == .crop, model.cropDraft != nil else { return false }
             if !model.fitCropToContent() { NSSound.beep() }
+            return true
+        case kVK_Space:
+            if !isRepeat { inspector.panning = true }
             return true
         case kVK_ANSI_P where !shift:
             guard inspector.liveMode != nil || model.tool == .ruler || model.tool == .crop else { return false }
@@ -2044,6 +2107,11 @@ final class ScreenshotEditorController: NSObject, NSWindowDelegate {
 
     // MARK: NSWindowDelegate
 
+    /// Space can go up in another window, where this one never hears it.
+    func windowDidResignKey(_ notification: Notification) {
+        model.inspector.panning = false
+    }
+
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         guard model.isDirty else { return true }
         let alert = NSAlert()
@@ -2067,6 +2135,14 @@ final class ScreenshotEditorController: NSObject, NSWindowDelegate {
         if let keyMonitor {
             NSEvent.removeMonitor(keyMonitor)
             self.keyMonitor = nil
+        }
+        if let keyUpMonitor {
+            NSEvent.removeMonitor(keyUpMonitor)
+            self.keyUpMonitor = nil
+        }
+        if let panMonitor {
+            NSEvent.removeMonitor(panMonitor)
+            self.panMonitor = nil
         }
         window?.delegate = nil
         window = nil

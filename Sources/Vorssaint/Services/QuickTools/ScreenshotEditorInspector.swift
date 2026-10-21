@@ -22,6 +22,8 @@ final class ScreenshotEditorInspector: ObservableObject {
     @Published var unit: Support.MeasureUnit {
         didSet { UserDefaults.standard.set(unit.rawValue, forKey: DefaultsKey.screenshotMeasureUnit) }
     }
+    /// True while Space is held, when a drag moves the canvas instead of drawing.
+    @Published var panning = false
 
     /// The crop selection's size and colors, read in the background.
     struct SelectionReading: Equatable {
@@ -147,6 +149,42 @@ final class ScreenshotEditorInspector: ObservableObject {
         else { return nil }
         let origin = rect.integral.intersection(CGRect(x: 0, y: 0, width: image.width, height: image.height)).origin
         return content.offsetBy(dx: origin.x, dy: origin.y)
+    }
+
+    // MARK: Scrolling
+
+    /// The scroll view the canvas sits in, found by the canvas itself.
+    weak var scrollView: NSScrollView?
+
+    /// Moves the canvas with the pointer, the way a hand tool does.
+    func pan(by delta: CGSize) {
+        guard let scrollView, let document = scrollView.documentView else { return }
+        let clip = scrollView.contentView
+        var origin = clip.bounds.origin
+        origin.x -= delta.width
+        origin.y += document.isFlipped ? -delta.height : delta.height
+        scroll(scrollView, to: origin)
+    }
+
+    /// Brings `target`, in canvas points from the top left, to the middle.
+    func center(on target: CGRect) {
+        guard let scrollView, let document = scrollView.documentView else { return }
+        let viewport = scrollView.contentView.bounds.size
+        var origin = ScreenshotOutputSupport.scrollOrigin(centering: target, viewport: viewport,
+                                                          content: document.frame.size)
+        if !document.isFlipped {
+            origin.y = document.frame.height - viewport.height - origin.y
+        }
+        scroll(scrollView, to: origin)
+    }
+
+    private func scroll(_ scrollView: NSScrollView, to origin: CGPoint) {
+        guard let document = scrollView.documentView else { return }
+        let clip = scrollView.contentView
+        let limit = CGPoint(x: max(document.frame.width - clip.bounds.width, 0),
+                            y: max(document.frame.height - clip.bounds.height, 0))
+        clip.scroll(to: CGPoint(x: min(max(origin.x, 0), limit.x), y: min(max(origin.y, 0), limit.y)))
+        scrollView.reflectScrolledClipView(clip)
     }
 
     // MARK: Colors

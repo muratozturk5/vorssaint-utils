@@ -6,9 +6,10 @@ import Foundation
 import ImageIO
 import UniformTypeIdentifiers
 
-/// The decisions behind changing what a capture becomes: resizing it and
-/// making a before and after animation of it. Pure geometry and encoding,
-/// so each rule is testable without a window.
+/// The decisions behind changing what a capture becomes and how the editor
+/// shows it: resizing it, making a before and after animation of it, and
+/// zooming to a part of it. Pure geometry and encoding, so each rule is
+/// testable without a window.
 enum ScreenshotOutputSupport {
     // MARK: - Resize
 
@@ -51,6 +52,30 @@ enum ScreenshotOutputSupport {
     static func proportionalSide(_ typed: Int, of original: CGFloat, other: CGFloat) -> Int {
         guard original > 0 else { return 0 }
         return max(1, Int((CGFloat(typed) * other / original).rounded()))
+    }
+
+    // MARK: - Zoom
+
+    /// The zoom (view points per image pixel) that shows `rect` whole inside
+    /// `viewport` with `margin` around it.
+    static func zoomToFit(_ rect: CGRect, viewport: CGSize, margin: CGFloat,
+                          range: ClosedRange<CGFloat>) -> CGFloat? {
+        guard rect.width > 0, rect.height > 0 else { return nil }
+        let width = max(viewport.width - margin * 2, 1)
+        let height = max(viewport.height - margin * 2, 1)
+        let zoom = min(width / rect.width, height / rect.height)
+        guard zoom.isFinite else { return nil }
+        return min(max(zoom, range.lowerBound), range.upperBound)
+    }
+
+    /// Where a scroll view's visible area starts so `target` (content points)
+    /// sits in its middle, kept within the scrollable range.
+    static func scrollOrigin(centering target: CGRect, viewport: CGSize, content: CGSize) -> CGPoint {
+        func clamped(_ value: CGFloat, _ limit: CGFloat) -> CGFloat {
+            min(max(value, 0), max(limit, 0))
+        }
+        return CGPoint(x: clamped(target.midX - viewport.width / 2, content.width - viewport.width),
+                       y: clamped(target.midY - viewport.height / 2, content.height - viewport.height))
     }
 
     // MARK: - Before and after
