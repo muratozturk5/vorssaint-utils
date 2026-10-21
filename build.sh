@@ -492,6 +492,7 @@ if (( TEST )); then
         Sources/Vorssaint/Core/DiskExclusionStrings.swift
         Sources/Vorssaint/Core/SwitcherAppRulesStrings.swift
         Sources/Vorssaint/Services/QuickTools/QuickToolsSupport.swift
+        Sources/Vorssaint/Core/ScreenTextStrings.swift
         Sources/Vorssaint/Services/CommandBar/CommandBarSupport.swift
         Sources/Vorssaint/Services/CommandBar/CommandBarPreferences.swift
         Sources/Vorssaint/Services/CommandBar/CommandBarMath.swift
