@@ -2966,6 +2966,51 @@ enum ScreenshotFeatureTests {
                                 .colors([(red: 1, green: 1, blue: 1)]))
             suite.expect(filled.flatMap { alpha(of: $0, x: 0, y: 0) } == 255,
                    "a color backdrop fills the margin a transparent one leaves empty")
+        // A window capture keeps its rounded corners in its alpha. The card's
+        // shadow has to follow them, or a square of shadow shows past them.
+        func card(cornerRadius: CGFloat) -> CGImage? {
+            guard let context = CGContext(data: nil, width: 400, height: 300, bitsPerComponent: 8,
+                                          bytesPerRow: 0, space: CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)
+            else { return nil }
+            context.setFillColor(CGColor(gray: 0.5, alpha: 1))
+            context.addPath(CGPath(roundedRect: CGRect(x: 0, y: 0, width: 400, height: 300),
+                                   cornerWidth: cornerRadius, cornerHeight: cornerRadius, transform: nil))
+            context.fillPath()
+            return context.makeImage()
+        }
+        if let square = card(cornerRadius: 0), let window = card(cornerRadius: 40) {
+            suite.expect(ScreenshotSupport.transparentCornerRadius(of: square) == 0,
+                   "an opaque capture has no rounding of its own")
+            suite.expect(abs(ScreenshotSupport.transparentCornerRadius(of: window) - 40) <= 3,
+                   "a window's own corner radius is read from its alpha")
+            func shadowBrightness(_ image: CGImage) -> UInt8? {
+                let margin = Int(ScreenshotSupport.backdropPadding(for: CGSize(width: 400, height: 300),
+                                                                   factor: 1))
+                guard let export = ScreenshotRenderer.renderExport(
+                        baseImage: image, annotations: [], blurSources: .none, scale: 1,
+                        annotationShadowsEnabled: false, watermark: ScreenshotSupport.WatermarkStyle(),
+                        watermarkImage: nil,
+                        style: ScreenshotSupport.BackdropStyle(kind: .solid, colors: [[1, 1, 1]],
+                                                               padding: 1, cornerRadius: 0),
+                        fill: .colors([(red: 1, green: 1, blue: 1)]), downscaleTo1x: false)?.image,
+                      let context = CGContext(data: nil, width: export.width, height: export.height,
+                                              bitsPerComponent: 8, bytesPerRow: export.width * 4,
+                                              space: CGColorSpaceCreateDeviceRGB(),
+                                              bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue),
+                      let pixels = context.data
+                else { return nil }
+                context.draw(export, in: CGRect(x: 0, y: 0, width: export.width, height: export.height))
+                // Just outside the card's lower left corner, where the shadow falls.
+                let x = margin - 2, y = export.height - margin + 1
+                return pixels.load(fromByteOffset: (y * export.width + x) * 4, as: UInt8.self)
+            }
+            if let squareCorner = shadowBrightness(square), let windowCorner = shadowBrightness(window) {
+                suite.expect(Int(windowCorner) - Int(squareCorner) >= 20,
+                       "the shadow follows a window's own rounded corner instead of a square card")
+            } else {
+                suite.expect(false, "the corner shadow test exports render")
+            }
         }
 
         let presetList = [solidStyle,
