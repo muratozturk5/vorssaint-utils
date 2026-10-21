@@ -1142,6 +1142,9 @@ enum ClipboardFeatureTests {
                           clipboardStrings.pasteStackAdd].allSatisfy { !$0.isEmpty }
                    && String(format: clipboardStrings.pasteStackRemainingFormat, 2).contains("2"),
                    "\(language.rawValue) the clipboard paste stack is localized")
+            suite.expect(!clipboardStrings.historyOpensIn.isEmpty
+                   && clipboardStrings.historyOpensIn != clipboardStrings.historyLayout,
+                   "\(language.rawValue) clipboard history destination choice is localized")
             let layoutStrings = FeatureStrings.windowLayout(language)
             suite.expect(!layoutStrings.sixths.isEmpty
                    && !layoutStrings.topLeftSixth.isEmpty
