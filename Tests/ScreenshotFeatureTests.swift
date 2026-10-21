@@ -2975,6 +2975,7 @@ enum ScreenshotFeatureTests {
                                 .colors([(red: 1, green: 1, blue: 1)]))
             suite.expect(filled.flatMap { alpha(of: $0, x: 0, y: 0) } == 255,
                    "a color backdrop fills the margin a transparent one leaves empty")
+        }
         // A window capture keeps its rounded corners in its alpha. The card's
         // shadow has to follow them, or a square of shadow shows past them.
         func card(cornerRadius: CGFloat) -> CGImage? {
