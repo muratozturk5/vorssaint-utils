@@ -1274,36 +1274,54 @@ private struct EntryClicks: ViewModifier {
     }
 }
 
-/// A link's card body: a globe in the card's color over the page's host
-/// and address.
+/// A link's card body: the page's picture and title once a preview is
+/// fetched (when the user allows it), the address alone until then.
 private struct LinkCardBody: View {
     let url: URL
     let tint: Color
     let tokens: [String]
+    @ObservedObject private var previews = ClipboardLinkPreviewStore.shared
 
     var body: some View {
+        let preview = previews.previews[url]
         VStack(alignment: .leading, spacing: 5) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                    .fill(tint.opacity(0.12))
-                Image(systemName: "globe")
-                    .font(.system(size: 30, weight: .light))
-                    .foregroundStyle(tint)
+            if let image = preview?.image {
+                // The picture fills the room left above the title. As an
+                // overlay it cannot ask for more room than that, whatever
+                // its shape.
+                Color.clear
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .overlay {
+                        Image(nsImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    }
+                    .clipped()
+            } else {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(tint.opacity(0.12))
+                    Image(systemName: "globe")
+                        .font(.system(size: 30, weight: .light))
+                        .foregroundStyle(tint)
+                }
+                .frame(maxHeight: .infinity)
+                .padding([.horizontal, .top], 10)
             }
-            .frame(maxHeight: .infinity)
-            .padding([.horizontal, .top], 10)
             VStack(alignment: .leading, spacing: 2) {
-                Text(url.host ?? url.absoluteString)
+                Text(preview?.title ?? url.host ?? url.absoluteString)
                     .font(.system(size: 13, weight: .semibold))
-                    .lineLimit(1)
-                SearchHighlightText.text(url.absoluteString, tokens: tokens, fontSize: 11)
+                    .lineLimit(preview?.title == nil ? 1 : 2)
+                SearchHighlightText.text(preview?.title == nil ? url.absoluteString : (url.host ?? url.absoluteString),
+                                         tokens: tokens, fontSize: 11)
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                    .lineLimit(preview?.title == nil ? 2 : 1)
                     .truncationMode(.middle)
             }
             .padding([.horizontal, .bottom], 10)
         }
+        .task(id: url) { previews.request(url) }
     }
 }
 
