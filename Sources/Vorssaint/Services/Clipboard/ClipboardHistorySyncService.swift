@@ -22,16 +22,11 @@ import Security
 final class ClipboardHistorySyncService: ObservableObject {
     static let shared = ClipboardHistorySyncService()
 
-    enum Status: Equatable {
-        case off
-        case checking
-        case noAccount
-        case unavailable
-        case storageFull
-        case synced(at: Date, otherMacs: Int)
-    }
+    typealias Status = ClipboardHistorySyncStatus
 
     @Published private(set) var status: Status = .off
+    /// True while a round talks to CloudKit.
+    @Published private(set) var isSyncing = false
 
     /// The CloudKit container this build is entitled to, or nil. Asking
     /// CloudKit for a container the signature does not name ends the process,
@@ -78,7 +73,9 @@ final class ClipboardHistorySyncService: ObservableObject {
     private var accountObserver: NSObjectProtocol?
     private var signature: Signature?
     private var syncScheduled = false
-    private var busy = false
+    private var busy = false {
+        didSet { if isSyncing != busy { isSyncing = busy } }
+    }
     private var syncAgain = false
     private var publishPending = true
     /// Merge even when nothing changed in iCloud: the local limits or filters
@@ -116,6 +113,15 @@ final class ClipboardHistorySyncService: ObservableObject {
         else { return }
         loadState()
         if state.removalPending { Task { @MainActor in await self.removeThisMac() } }
+    }
+
+    /// Reads the other Macs' changes and publishes this Mac's at once, instead
+    /// of at the next round. Nothing to do while one is under way.
+    func syncNow() {
+        guard running, !busy else { return }
+        forceMerge = true
+        publishPending = true
+        scheduleSync(after: 0)
     }
 
     /// The settings switch. Turning it off also takes this Mac's records out

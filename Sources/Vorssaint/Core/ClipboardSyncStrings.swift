@@ -20,6 +20,16 @@ struct ClipboardSyncStrings {
     let storageFull: String
     let syncedFormat: String
     let otherMacsFormat: String
+    /// The history window's status line.
+    let statusLabel: String
+    let statusSyncedFormat: String
+    let statusJustNow: String
+    let statusSyncing: String
+    let statusChecking: String
+    let statusNoAccount: String
+    let statusUnavailable: String
+    let statusStorageFull: String
+    let statusHelp: String
 }
 
 extension FeatureStrings {
@@ -59,7 +69,16 @@ extension ClipboardSyncStrings {
         unavailable: "iCloud can’t be reached right now. Vorssaint will try again.",
         storageFull: "Your iCloud storage is full, so new items can’t sync.",
         syncedFormat: "Last synced at %@",
-        otherMacsFormat: "Other Macs: %d"
+        otherMacsFormat: "Other Macs: %d",
+        statusLabel: "iCloud sync",
+        statusSyncedFormat: "Synced %@",
+        statusJustNow: "Synced just now",
+        statusSyncing: "Syncing…",
+        statusChecking: "Checking…",
+        statusNoAccount: "Not signed in to iCloud",
+        statusUnavailable: "Can’t reach iCloud",
+        statusStorageFull: "iCloud storage is full",
+        statusHelp: "Syncs a few seconds after each change on this Mac and at least once a minute, picking up the other Macs’ changes each time. Click to sync now."
     )
 
     static let ptBR = ClipboardSyncStrings(
@@ -76,7 +95,16 @@ extension ClipboardSyncStrings {
         unavailable: "O iCloud não está disponível agora. O Vorssaint tentará de novo.",
         storageFull: "Seu armazenamento do iCloud está cheio, então novos itens não podem ser sincronizados.",
         syncedFormat: "Última sincronização às %@",
-        otherMacsFormat: "Outros Macs: %d"
+        otherMacsFormat: "Outros Macs: %d",
+        statusLabel: "Sincronização do iCloud",
+        statusSyncedFormat: "Sincronizado %@",
+        statusJustNow: "Sincronizado agora mesmo",
+        statusSyncing: "Sincronizando…",
+        statusChecking: "Verificando…",
+        statusNoAccount: "Sem sessão no iCloud",
+        statusUnavailable: "Não foi possível acessar o iCloud",
+        statusStorageFull: "O armazenamento do iCloud está cheio",
+        statusHelp: "Sincroniza alguns segundos após cada alteração neste Mac e pelo menos uma vez por minuto, trazendo as alterações dos outros Macs a cada vez. Clique para sincronizar agora."
     )
 
     static let tr = ClipboardSyncStrings(
@@ -93,7 +121,16 @@ extension ClipboardSyncStrings {
         unavailable: "iCloud’a şu anda ulaşılamıyor. Vorssaint yeniden deneyecek.",
         storageFull: "iCloud depolama alanınız dolu, bu yüzden yeni öğeler eşzamanlanamıyor.",
         syncedFormat: "Son eşzamanlama: %@",
-        otherMacsFormat: "Diğer Mac’ler: %d"
+        otherMacsFormat: "Diğer Mac’ler: %d",
+        statusLabel: "iCloud eşzamanlama",
+        statusSyncedFormat: "Eşzamanlandı: %@",
+        statusJustNow: "Az önce eşzamanlandı",
+        statusSyncing: "Eşzamanlanıyor…",
+        statusChecking: "Denetleniyor…",
+        statusNoAccount: "iCloud’a giriş yapılmamış",
+        statusUnavailable: "iCloud’a ulaşılamıyor",
+        statusStorageFull: "iCloud depolama alanı dolu",
+        statusHelp: "Bu Mac’teki her değişiklikten birkaç saniye sonra ve en az dakikada bir eşzamanlar; her seferinde diğer Mac’lerin değişikliklerini de alır. Hemen eşzamanlamak için tıklayın."
     )
 
     static let ru = ClipboardSyncStrings(
@@ -110,7 +147,16 @@ extension ClipboardSyncStrings {
         unavailable: "iCloud сейчас недоступен. Vorssaint попробует снова.",
         storageFull: "Хранилище iCloud заполнено, поэтому новые элементы не синхронизируются.",
         syncedFormat: "Последняя синхронизация: %@",
-        otherMacsFormat: "Других Mac: %d"
+        otherMacsFormat: "Других Mac: %d",
+        statusLabel: "Синхронизация iCloud",
+        statusSyncedFormat: "Синхронизировано %@",
+        statusJustNow: "Синхронизировано только что",
+        statusSyncing: "Синхронизация…",
+        statusChecking: "Проверка…",
+        statusNoAccount: "Вход в iCloud не выполнен",
+        statusUnavailable: "Нет доступа к iCloud",
+        statusStorageFull: "Хранилище iCloud заполнено",
+        statusHelp: "Синхронизирует через несколько секунд после каждого изменения на этом Mac и не реже раза в минуту, каждый раз получая изменения с других Mac. Нажмите, чтобы синхронизировать сейчас."
     )
 
     static let es = ClipboardSyncStrings(
@@ -127,7 +173,16 @@ extension ClipboardSyncStrings {
         unavailable: "iCloud no está disponible ahora. Vorssaint lo intentará de nuevo.",
         storageFull: "Tu almacenamiento de iCloud está lleno, así que los elementos nuevos no se pueden sincronizar.",
         syncedFormat: "Última sincronización a las %@",
-        otherMacsFormat: "Otros Mac: %d"
+        otherMacsFormat: "Otros Mac: %d",
+        statusLabel: "Sincronización con iCloud",
+        statusSyncedFormat: "Sincronizado %@",
+        statusJustNow: "Sincronizado ahora mismo",
+        statusSyncing: "Sincronizando…",
+        statusChecking: "Comprobando…",
+        statusNoAccount: "No has iniciado sesión en iCloud",
+        statusUnavailable: "No se puede acceder a iCloud",
+        statusStorageFull: "El almacenamiento de iCloud está lleno",
+        statusHelp: "Sincroniza unos segundos después de cada cambio en este Mac y al menos una vez por minuto, recogiendo cada vez los cambios de los otros Mac. Haz clic para sincronizar ahora."
     )
 
     static let sk = ClipboardSyncStrings(
@@ -144,7 +199,16 @@ extension ClipboardSyncStrings {
         unavailable: "iCloud momentálne nie je dostupný. Vorssaint to skúsi znova.",
         storageFull: "Vaše úložisko iCloud je plné, preto sa nové položky nemôžu synchronizovať.",
         syncedFormat: "Naposledy synchronizované o %@",
-        otherMacsFormat: "Ďalšie Macy: %d"
+        otherMacsFormat: "Ďalšie Macy: %d",
+        statusLabel: "Synchronizácia cez iCloud",
+        statusSyncedFormat: "Synchronizované %@",
+        statusJustNow: "Synchronizované práve teraz",
+        statusSyncing: "Synchronizuje sa…",
+        statusChecking: "Kontroluje sa…",
+        statusNoAccount: "Nie ste prihlásení do iCloudu",
+        statusUnavailable: "iCloud nie je dostupný",
+        statusStorageFull: "Úložisko iCloud je plné",
+        statusHelp: "Synchronizuje pár sekúnd po každej zmene na tomto Macu a aspoň raz za minútu, pričom zakaždým prevezme zmeny z ostatných Macov. Kliknutím synchronizujete hneď."
     )
 
     static let de = ClipboardSyncStrings(
@@ -161,7 +225,16 @@ extension ClipboardSyncStrings {
         unavailable: "iCloud ist gerade nicht erreichbar. Vorssaint versucht es erneut.",
         storageFull: "Dein iCloud-Speicher ist voll, daher können neue Einträge nicht synchronisiert werden.",
         syncedFormat: "Zuletzt synchronisiert um %@",
-        otherMacsFormat: "Andere Macs: %d"
+        otherMacsFormat: "Andere Macs: %d",
+        statusLabel: "iCloud-Synchronisierung",
+        statusSyncedFormat: "Synchronisiert %@",
+        statusJustNow: "Gerade synchronisiert",
+        statusSyncing: "Wird synchronisiert…",
+        statusChecking: "Wird geprüft…",
+        statusNoAccount: "Nicht bei iCloud angemeldet",
+        statusUnavailable: "iCloud nicht erreichbar",
+        statusStorageFull: "iCloud-Speicher ist voll",
+        statusHelp: "Synchronisiert ein paar Sekunden nach jeder Änderung auf diesem Mac und mindestens einmal pro Minute und holt dabei jedes Mal die Änderungen der anderen Macs. Klicke, um jetzt zu synchronisieren."
     )
 
     static let fr = ClipboardSyncStrings(
@@ -178,7 +251,16 @@ extension ClipboardSyncStrings {
         unavailable: "iCloud est injoignable pour le moment. Vorssaint réessaiera.",
         storageFull: "Votre stockage iCloud est plein, les nouveaux éléments ne peuvent donc pas être synchronisés.",
         syncedFormat: "Dernière synchronisation à %@",
-        otherMacsFormat: "Autres Mac\u{00A0}: %d"
+        otherMacsFormat: "Autres Mac\u{00A0}: %d",
+        statusLabel: "Synchronisation iCloud",
+        statusSyncedFormat: "Synchronisé %@",
+        statusJustNow: "Synchronisé à l’instant",
+        statusSyncing: "Synchronisation…",
+        statusChecking: "Vérification…",
+        statusNoAccount: "Non connecté à iCloud",
+        statusUnavailable: "iCloud est injoignable",
+        statusStorageFull: "Le stockage iCloud est plein",
+        statusHelp: "Synchronise quelques secondes après chaque modification sur ce Mac et au moins une fois par minute, en récupérant à chaque fois les modifications des autres Mac. Cliquez pour synchroniser maintenant."
     )
 
     static let it = ClipboardSyncStrings(
@@ -195,7 +277,16 @@ extension ClipboardSyncStrings {
         unavailable: "iCloud non è raggiungibile in questo momento. Vorssaint riproverà.",
         storageFull: "Lo spazio di iCloud è pieno, quindi i nuovi elementi non possono essere sincronizzati.",
         syncedFormat: "Ultima sincronizzazione alle %@",
-        otherMacsFormat: "Altri Mac: %d"
+        otherMacsFormat: "Altri Mac: %d",
+        statusLabel: "Sincronizzazione iCloud",
+        statusSyncedFormat: "Sincronizzato %@",
+        statusJustNow: "Sincronizzato ora",
+        statusSyncing: "Sincronizzazione…",
+        statusChecking: "Controllo…",
+        statusNoAccount: "Accesso a iCloud non eseguito",
+        statusUnavailable: "Impossibile raggiungere iCloud",
+        statusStorageFull: "Lo spazio di iCloud è pieno",
+        statusHelp: "Sincronizza qualche secondo dopo ogni modifica su questo Mac e almeno una volta al minuto, recuperando ogni volta le modifiche degli altri Mac. Fai clic per sincronizzare ora."
     )
 
     static let ja = ClipboardSyncStrings(
@@ -212,7 +303,16 @@ extension ClipboardSyncStrings {
         unavailable: "現在iCloudに接続できません。Vorssaintがあとで再試行します。",
         storageFull: "iCloudストレージがいっぱいのため、新しい項目を同期できません。",
         syncedFormat: "最終同期: %@",
-        otherMacsFormat: "ほかのMac: %d台"
+        otherMacsFormat: "ほかのMac: %d台",
+        statusLabel: "iCloud同期",
+        statusSyncedFormat: "%@に同期",
+        statusJustNow: "たった今同期",
+        statusSyncing: "同期中…",
+        statusChecking: "確認中…",
+        statusNoAccount: "iCloudにサインインしていません",
+        statusUnavailable: "iCloudに接続できません",
+        statusStorageFull: "iCloudストレージがいっぱいです",
+        statusHelp: "このMacで変更があってから数秒後と、少なくとも1分に1回同期し、そのたびにほかのMacの変更も取り込みます。クリックするとすぐに同期します。"
     )
 
     static let ko = ClipboardSyncStrings(
@@ -229,7 +329,16 @@ extension ClipboardSyncStrings {
         unavailable: "지금은 iCloud에 연결할 수 없습니다. Vorssaint가 다시 시도합니다.",
         storageFull: "iCloud 저장 공간이 가득 차서 새 항목을 동기화할 수 없습니다.",
         syncedFormat: "마지막 동기화: %@",
-        otherMacsFormat: "다른 Mac: %d대"
+        otherMacsFormat: "다른 Mac: %d대",
+        statusLabel: "iCloud 동기화",
+        statusSyncedFormat: "%@ 동기화됨",
+        statusJustNow: "방금 동기화됨",
+        statusSyncing: "동기화 중…",
+        statusChecking: "확인 중…",
+        statusNoAccount: "iCloud에 로그인되어 있지 않음",
+        statusUnavailable: "iCloud에 연결할 수 없음",
+        statusStorageFull: "iCloud 저장 공간이 가득 참",
+        statusHelp: "이 Mac에서 변경될 때마다 몇 초 후, 그리고 최소 1분에 한 번 동기화하며 그때마다 다른 Mac의 변경 사항도 가져옵니다. 지금 동기화하려면 클릭하십시오."
     )
 
     static let zhHans = ClipboardSyncStrings(
@@ -246,7 +355,16 @@ extension ClipboardSyncStrings {
         unavailable: "目前无法连接 iCloud。Vorssaint 会再试一次。",
         storageFull: "你的 iCloud 储存空间已满，因此新项目无法同步。",
         syncedFormat: "上次同步：%@",
-        otherMacsFormat: "其他 Mac：%d 台"
+        otherMacsFormat: "其他 Mac：%d 台",
+        statusLabel: "iCloud 同步",
+        statusSyncedFormat: "%@同步",
+        statusJustNow: "刚刚同步",
+        statusSyncing: "正在同步…",
+        statusChecking: "正在检查…",
+        statusNoAccount: "未登录 iCloud",
+        statusUnavailable: "无法连接 iCloud",
+        statusStorageFull: "iCloud 储存空间已满",
+        statusHelp: "在这台 Mac 上每次更改后几秒以及至少每分钟同步一次，每次都会取回其他 Mac 的更改。点按可立即同步。"
     )
 
     static let zhTW = ClipboardSyncStrings(
@@ -263,7 +381,16 @@ extension ClipboardSyncStrings {
         unavailable: "目前無法連線至 iCloud。Vorssaint 會再試一次。",
         storageFull: "你的 iCloud 儲存空間已滿，因此新項目無法同步。",
         syncedFormat: "上次同步：%@",
-        otherMacsFormat: "其他 Mac：%d 台"
+        otherMacsFormat: "其他 Mac：%d 台",
+        statusLabel: "iCloud 同步",
+        statusSyncedFormat: "%@同步",
+        statusJustNow: "剛剛同步",
+        statusSyncing: "正在同步…",
+        statusChecking: "正在檢查…",
+        statusNoAccount: "未登入 iCloud",
+        statusUnavailable: "無法連線至 iCloud",
+        statusStorageFull: "iCloud 儲存空間已滿",
+        statusHelp: "在這台 Mac 上每次更改後幾秒以及至少每分鐘同步一次，每次都會取回其他 Mac 的更改。按一下即可立即同步。"
     )
 
     static let zhHK = ClipboardSyncStrings(
@@ -280,7 +407,16 @@ extension ClipboardSyncStrings {
         unavailable: "目前無法連線至 iCloud。Vorssaint 會再試一次。",
         storageFull: "你的 iCloud 儲存空間已滿，因此新項目無法同步。",
         syncedFormat: "上次同步：%@",
-        otherMacsFormat: "其他 Mac：%d 部"
+        otherMacsFormat: "其他 Mac：%d 部",
+        statusLabel: "iCloud 同步",
+        statusSyncedFormat: "%@同步",
+        statusJustNow: "剛剛同步",
+        statusSyncing: "正在同步…",
+        statusChecking: "正在檢查…",
+        statusNoAccount: "未登入 iCloud",
+        statusUnavailable: "無法連線至 iCloud",
+        statusStorageFull: "iCloud 儲存空間已滿",
+        statusHelp: "在這部 Mac 上每次更改後幾秒以及至少每分鐘同步一次，每次都會取回其他 Mac 的更改。按一下即可立即同步。"
     )
 
     static let uk = ClipboardSyncStrings(
@@ -297,6 +433,15 @@ extension ClipboardSyncStrings {
         unavailable: "iCloud зараз недоступний. Vorssaint спробує ще раз.",
         storageFull: "Сховище iCloud заповнене, тому нові елементи не синхронізуються.",
         syncedFormat: "Остання синхронізація: %@",
-        otherMacsFormat: "Інших Mac: %d"
+        otherMacsFormat: "Інших Mac: %d",
+        statusLabel: "Синхронізація iCloud",
+        statusSyncedFormat: "Синхронізовано %@",
+        statusJustNow: "Синхронізовано щойно",
+        statusSyncing: "Синхронізація…",
+        statusChecking: "Перевірка…",
+        statusNoAccount: "Вхід в iCloud не виконано",
+        statusUnavailable: "Немає доступу до iCloud",
+        statusStorageFull: "Сховище iCloud заповнене",
+        statusHelp: "Синхронізує через кілька секунд після кожної зміни на цьому Mac і щонайменше раз на хвилину, щоразу отримуючи зміни з інших Mac. Натисніть, щоб синхронізувати зараз."
     )
 }
