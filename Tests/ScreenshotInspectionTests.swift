@@ -51,6 +51,7 @@ enum ScreenshotInspectionTests {
         pixels(suite)
         measuring(suite)
         colors(suite)
+        smartCrop(suite)
         tools(suite)
         rendering(suite)
         preferencesAndStrings(suite)
@@ -176,6 +177,30 @@ enum ScreenshotInspectionTests {
         suite.expect(Inspection.sizeLabel(CGSize(width: 240, height: 96), scale: 2, unit: .points) == "120 × 48 pt"
                      && Inspection.sizeLabel(CGSize(width: 240, height: 96), scale: 2, unit: .pixels) == "240 × 96 px",
                      "a selection's size reads with one unit")
+    }
+
+    // MARK: - Smart crop
+
+    static func smartCrop(_ suite: TestSuite) {
+        var pixels = Array(repeating: white, count: 100)
+        for y in 5..<7 { for x in 4..<7 { pixels[y * 10 + x] = black } }
+        let grid = Inspection.PixelGrid(width: 10, height: 10, pixels: pixels)
+        suite.expect(Inspection.contentRect(in: grid) == CGRect(x: 4, y: 5, width: 3, height: 2),
+                     "fitting trims every plain border row and column")
+        suite.expect(Inspection.contentRect(in: Inspection.PixelGrid(width: 3, height: 3,
+                                                                    pixels: Array(repeating: white, count: 9))) == nil,
+                     "a selection with nothing in it keeps its size")
+        var noisy = Array(repeating: white, count: 25)
+        noisy[0] = RGBA(250, 250, 250)
+        noisy[12] = black
+        suite.expect(Inspection.contentRect(in: Inspection.PixelGrid(width: 5, height: 5, pixels: noisy))
+                     == CGRect(x: 2, y: 2, width: 1, height: 1),
+                     "a near match of the border color is still border")
+        var framed = Array(repeating: white, count: 36)
+        for index in 0..<6 { framed[index] = black }
+        suite.expect(Inspection.contentRect(in: Inspection.PixelGrid(width: 6, height: 6, pixels: framed))
+                     == CGRect(x: 0, y: 0, width: 6, height: 1),
+                     "content reaching a corner is kept, and the border is the color around it")
     }
 
     // MARK: - Tools

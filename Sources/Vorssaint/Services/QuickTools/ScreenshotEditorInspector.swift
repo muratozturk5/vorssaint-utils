@@ -138,6 +138,17 @@ final class ScreenshotEditorInspector: ObservableObject {
         }
     }
 
+    /// The selection trimmed to its content, read at full resolution so the
+    /// new edge lands on the exact pixel.
+    func contentRect(in rect: CGRect) -> CGRect? {
+        guard let image,
+              let grid = Support.pixelGrid(of: image, region: rect),
+              let content = Support.contentRect(in: grid)
+        else { return nil }
+        let origin = rect.integral.intersection(CGRect(x: 0, y: 0, width: image.width, height: image.height)).origin
+        return content.offsetBy(dx: origin.x, dy: origin.y)
+    }
+
     // MARK: Colors
 
     static func nsColor(_ color: Support.RGBA) -> NSColor {

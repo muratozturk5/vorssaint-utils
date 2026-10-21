@@ -5,7 +5,8 @@ import CoreGraphics
 import Foundation
 
 /// The decisions behind the editor's inspection tools: measuring the gap
-/// between edges, reading colors and rating contrast. Everything works on plain pixel values in
+/// between edges, reading colors, rating contrast and trimming a selection
+/// to its content. Everything works on plain pixel values in
 /// image pixels with a top-left origin, the annotations' space, so each rule
 /// is testable on a handful of synthetic pixels.
 enum ScreenshotInspectionSupport {
@@ -337,5 +338,44 @@ enum ScreenshotInspectionSupport {
             .max { contrastRatio($0, background) < contrastRatio($1, background) }
         guard let foreground, distance(foreground, background) > edgeTolerance else { return nil }
         return ColorPair(background: background, foreground: foreground)
+    }
+
+    // MARK: - Smart crop
+
+    /// The part of the grid that is not plain border: rows and columns along
+    /// the edges that hold nothing but the border color are trimmed away.
+    /// The border color is the most common one around the edge, so content
+    /// reaching a corner never passes for it. Nil when everything is that
+    /// color, where there is no content to fit.
+    static func contentRect(in grid: PixelGrid, tolerance: Int = edgeTolerance) -> CGRect? {
+        guard grid.width > 0, grid.height > 0 else { return nil }
+        var edge: [RGBA: Int] = [:]
+        for x in 0..<grid.width {
+            edge[grid[x, 0], default: 0] += 1
+            edge[grid[x, grid.height - 1], default: 0] += 1
+        }
+        for y in 0..<grid.height {
+            edge[grid[0, y], default: 0] += 1
+            edge[grid[grid.width - 1, y], default: 0] += 1
+        }
+        // A tie goes to the lower hex, so the answer never depends on hashing.
+        let ranked = edge.sorted { $0.value != $1.value ? $0.value > $1.value : $0.key.hex < $1.key.hex }
+        guard let border = ranked.first?.key else { return nil }
+        func plainRow(_ y: Int) -> Bool {
+            (0..<grid.width).allSatisfy { distance(grid[$0, y], border) <= tolerance }
+        }
+        func plainColumn(_ x: Int, rows: Range<Int>) -> Bool {
+            rows.allSatisfy { distance(grid[x, $0], border) <= tolerance }
+        }
+        var top = 0
+        while top < grid.height, plainRow(top) { top += 1 }
+        guard top < grid.height else { return nil }
+        var bottom = grid.height
+        while bottom > top, plainRow(bottom - 1) { bottom -= 1 }
+        var left = 0
+        while left < grid.width, plainColumn(left, rows: top..<bottom) { left += 1 }
+        var right = grid.width
+        while right > left, plainColumn(right - 1, rows: top..<bottom) { right -= 1 }
+        return CGRect(x: left, y: top, width: right - left, height: bottom - top)
     }
 }

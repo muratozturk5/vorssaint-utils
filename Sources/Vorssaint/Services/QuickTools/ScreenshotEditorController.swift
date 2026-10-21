@@ -1392,6 +1392,18 @@ extension ScreenshotEditorModel {
         annotations.append(annotation)
         return true
     }
+
+    /// Narrows the crop selection to what it holds, dropping plain border.
+    @discardableResult
+    func fitCropToContent() -> Bool {
+        guard tool == .crop, let draft = cropDraft,
+              let content = inspector.contentRect(in: draft),
+              content != draft.integral
+        else { return false }
+        cropDraft = ScreenshotSupport.pixelSnappedCropRect(content,
+                                                           within: CGRect(origin: .zero, size: imageSize))
+        return true
+    }
 }
 
 // MARK: - Window controller
@@ -1639,7 +1651,7 @@ final class ScreenshotEditorController: NSObject, NSWindowDelegate {
 
     /// The measuring and color keys. Each answers only where it means
     /// something, so Tab still moves focus when the pointer is off the
-    /// capture and C types nothing while no area is selected.
+    /// capture and C or A type nothing while no area is selected.
     private func handleInspectionKey(_ key: Int, shift: Bool, isRepeat: Bool) -> Bool {
         let inspector = model.inspector
         switch key {
@@ -1658,6 +1670,10 @@ final class ScreenshotEditorController: NSObject, NSWindowDelegate {
         case kVK_ANSI_C where !shift:
             guard model.tool == .crop, model.cropDraft != nil else { return false }
             copyColor(inspector.selection?.average)
+            return true
+        case kVK_ANSI_A where !shift:
+            guard model.tool == .crop, model.cropDraft != nil else { return false }
+            if !model.fitCropToContent() { NSSound.beep() }
             return true
         case kVK_ANSI_P where !shift:
             guard inspector.liveMode != nil || model.tool == .ruler || model.tool == .crop else { return false }

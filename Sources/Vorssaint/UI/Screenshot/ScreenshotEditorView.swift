@@ -1348,6 +1348,19 @@ struct ScreenshotEditorView: View {
                     QuickToolHUD.show(icon: "eyedropper", message: value, swatch: swatch)
                 }
             }
+            Button {
+                if !model.fitCropToContent() { NSSound.beep() }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.down.right.and.arrow.up.left.square")
+                    Text(inspectorStrings.fitToContent)
+                    Text("A")
+                        .font(.system(size: 9.5, weight: .bold, design: .rounded))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .screenshotSafeHelp(inspectorStrings.fitToContent + "  (A)")
+            .accessibilityLabel(inspectorStrings.fitToContent)
             Button(strings.cancel) {
                 model.tool = .select
             }
