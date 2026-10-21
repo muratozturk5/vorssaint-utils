@@ -1750,7 +1750,9 @@ final class ScreenshotEditorController: NSObject, NSWindowDelegate {
             case kVK_ANSI_Z:
                 if flags.contains(.shift) { model.redo() } else { model.undo() }
                 return true
-            case kVK_ANSI_P: pin(); return true
+            case kVK_ANSI_P:
+                if flags.contains(.shift) { printImage() } else { pin() }
+                return true
             case kVK_ANSI_2:
                 if !model.requestZoomToSelection() { NSSound.beep() }
                 return true
@@ -2057,6 +2059,26 @@ final class ScreenshotEditorController: NSObject, NSWindowDelegate {
         model.markExported()
         QuickToolHUD.show(icon: "tray.full", message: L10n.shared.s.shelfName)
         window?.close()
+    }
+
+    /// Prints the finished picture, fitted to the page and turned with it.
+    /// The editor stays open, as it does after pinning.
+    func printImage() {
+        guard let window, let export = model.exportImage() else { return }
+        let size = NSSize(width: CGFloat(export.image.width) / export.scale,
+                          height: CGFloat(export.image.height) / export.scale)
+        let view = NSImageView(frame: NSRect(origin: .zero, size: size))
+        view.image = NSImage(cgImage: export.image, size: size)
+        view.imageScaling = .scaleProportionallyUpOrDown
+        let info = (NSPrintInfo.shared.copy() as? NSPrintInfo) ?? NSPrintInfo()
+        info.orientation = ScreenshotOutputSupport.printsLandscape(size) ? .landscape : .portrait
+        info.horizontalPagination = .fit
+        info.verticalPagination = .fit
+        info.isHorizontallyCentered = true
+        info.isVerticallyCentered = true
+        let operation = NSPrintOperation(view: view, printInfo: info)
+        operation.jobTitle = strings.editorTitle
+        operation.runModal(for: window, delegate: nil, didRun: nil, contextInfo: nil)
     }
 
     /// Saves the capture without and then with its pasted images as a

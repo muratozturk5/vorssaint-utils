@@ -1009,6 +1009,12 @@ struct ScreenshotEditorView: View {
                         controller.addToShelf()
                     }
                 }
+                Divider()
+                Button(inspectorStrings.printButton) {
+                    commitEditingTextIfNeeded()
+                    controller.printImage()
+                }
+                .keyboardShortcut("p", modifiers: [.command, .shift])
             } label: {
                 Text(strings.saveButton)
             } primaryAction: {

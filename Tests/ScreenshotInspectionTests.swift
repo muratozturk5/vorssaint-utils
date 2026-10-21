@@ -364,6 +364,10 @@ enum ScreenshotInspectionTests {
                      && abs(((delay as? NSNumber)?.doubleValue ?? 0) - Output.comparisonFrameDelay) < 0.01,
                      "the comparison GIF has both frames, loops and holds each one")
         suite.expect(Output.gifData(frames: []) == nil, "no frames make no GIF")
+        suite.expect(Output.printsLandscape(CGSize(width: 300, height: 200))
+                     && !Output.printsLandscape(CGSize(width: 200, height: 300))
+                     && !Output.printsLandscape(CGSize(width: 200, height: 200)),
+                     "a wide capture prints across a landscape page")
     }
 
     // MARK: - Preferences and strings
@@ -383,8 +387,8 @@ enum ScreenshotInspectionTests {
             suite.expect(values.allSatisfy { !$0.contains("\u{2014}") && !$0.contains("\u{2013}") && !$0.contains("'") },
                          "inspector strings use no long dashes or straight apostrophes (\(language.rawValue))")
             suite.expect(strings.measureHint.contains("⌥S") && strings.measureHint.contains("⌥D")
-                         && strings.pointerColorHint.contains("⇧Tab"),
-                         "the hints name their keys (\(language.rawValue))")
+                         && strings.pointerColorHint.contains("⇧Tab") && strings.printButton.hasSuffix("…"),
+                         "the hints name their keys and Print ends with an ellipsis (\(language.rawValue))")
         }
     }
 }

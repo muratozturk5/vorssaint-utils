@@ -7,8 +7,8 @@ import ImageIO
 import UniformTypeIdentifiers
 
 /// The decisions behind changing what a capture becomes and how the editor
-/// shows it: resizing it, making a before and after animation of it, and
-/// zooming to a part of it. Pure geometry and encoding, so each rule is
+/// shows it: resizing it, making a before and after animation of it,
+/// zooming to a part of it and printing it. Pure geometry and encoding, so each rule is
 /// testable without a window.
 enum ScreenshotOutputSupport {
     // MARK: - Resize
@@ -120,5 +120,12 @@ enum ScreenshotOutputSupport {
         }
         guard CGImageDestinationFinalize(destination) else { return nil }
         return data as Data
+    }
+
+    // MARK: - Printing
+
+    /// A wide capture prints across a landscape page.
+    static func printsLandscape(_ size: CGSize) -> Bool {
+        size.width > size.height
     }
 }

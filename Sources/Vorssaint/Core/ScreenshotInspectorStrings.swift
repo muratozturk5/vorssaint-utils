@@ -22,6 +22,7 @@ struct ScreenshotInspectorStrings {
     let resizeCaption: String
     let overlayOpacityLabel: String
     let comparisonGIF: String
+    let printButton: String
     let zoomToSelection: String
 }
 
@@ -66,6 +67,7 @@ extension ScreenshotInspectorStrings {
         resizeCaption: "Marks become part of the picture. Undo brings them back.",
         overlayOpacityLabel: "Opacity",
         comparisonGIF: "Save before and after GIF",
+        printButton: "Print…",
         zoomToSelection: "Zoom to selection"
     )
 
@@ -87,6 +89,7 @@ extension ScreenshotInspectorStrings {
         resizeCaption: "As marcações passam a fazer parte da imagem. Desfazer as traz de volta.",
         overlayOpacityLabel: "Opacidade",
         comparisonGIF: "Salvar GIF de antes e depois",
+        printButton: "Imprimir…",
         zoomToSelection: "Ampliar a seleção"
     )
 
@@ -108,6 +111,7 @@ extension ScreenshotInspectorStrings {
         resizeCaption: "Notlar görselin parçası olur. Geri al onları geri getirir.",
         overlayOpacityLabel: "Opaklık",
         comparisonGIF: "Önce ve sonra GIF’ini kaydet",
+        printButton: "Yazdır…",
         zoomToSelection: "Seçime yakınlaştır"
     )
 
@@ -129,6 +133,7 @@ extension ScreenshotInspectorStrings {
         resizeCaption: "Пометки станут частью изображения. Отмена вернёт их.",
         overlayOpacityLabel: "Непрозрачность",
         comparisonGIF: "Сохранить GIF до и после",
+        printButton: "Напечатать…",
         zoomToSelection: "Увеличить выделение"
     )
 
@@ -150,6 +155,7 @@ extension ScreenshotInspectorStrings {
         resizeCaption: "Las marcas pasan a formar parte de la imagen. Deshacer las recupera.",
         overlayOpacityLabel: "Opacidad",
         comparisonGIF: "Guardar GIF de antes y después",
+        printButton: "Imprimir…",
         zoomToSelection: "Ampliar la selección"
     )
 
@@ -171,6 +177,7 @@ extension ScreenshotInspectorStrings {
         resizeCaption: "Značky sa stanú súčasťou obrázka. Späť ich vráti.",
         overlayOpacityLabel: "Nepriehľadnosť",
         comparisonGIF: "Uložiť GIF pred a po",
+        printButton: "Tlačiť…",
         zoomToSelection: "Priblížiť výber"
     )
 
@@ -192,6 +199,7 @@ extension ScreenshotInspectorStrings {
         resizeCaption: "Markierungen werden Teil des Bilds. Widerrufen holt sie zurück.",
         overlayOpacityLabel: "Deckkraft",
         comparisonGIF: "Vorher-nachher-GIF sichern",
+        printButton: "Drucken…",
         zoomToSelection: "Auf Auswahl zoomen"
     )
 
@@ -213,6 +221,7 @@ extension ScreenshotInspectorStrings {
         resizeCaption: "Les annotations font partie de l’image. Annuler les rétablit.",
         overlayOpacityLabel: "Opacité",
         comparisonGIF: "Enregistrer un GIF avant et après",
+        printButton: "Imprimer…",
         zoomToSelection: "Zoomer sur la sélection"
     )
 
@@ -234,6 +243,7 @@ extension ScreenshotInspectorStrings {
         resizeCaption: "Le annotazioni diventano parte dell’immagine. Annulla le riporta indietro.",
         overlayOpacityLabel: "Opacità",
         comparisonGIF: "Salva GIF prima e dopo",
+        printButton: "Stampa…",
         zoomToSelection: "Ingrandisci la selezione"
     )
 
@@ -255,6 +265,7 @@ extension ScreenshotInspectorStrings {
         resizeCaption: "注釈は画像の一部になります。取り消すと元に戻ります。",
         overlayOpacityLabel: "不透明度",
         comparisonGIF: "ビフォーアフター GIF を保存",
+        printButton: "プリント…",
         zoomToSelection: "選択範囲にズーム"
     )
 
@@ -276,6 +287,7 @@ extension ScreenshotInspectorStrings {
         resizeCaption: "주석이 이미지의 일부가 됩니다. 실행 취소하면 되돌아옵니다.",
         overlayOpacityLabel: "불투명도",
         comparisonGIF: "전후 비교 GIF 저장",
+        printButton: "프린트…",
         zoomToSelection: "선택 영역으로 확대"
     )
 
@@ -297,6 +309,7 @@ extension ScreenshotInspectorStrings {
         resizeCaption: "标注将合并到图片中。撤销可恢复。",
         overlayOpacityLabel: "不透明度",
         comparisonGIF: "存储前后对比 GIF",
+        printButton: "打印…",
         zoomToSelection: "缩放到所选内容"
     )
 
@@ -318,6 +331,7 @@ extension ScreenshotInspectorStrings {
         resizeCaption: "標註會合併到圖片中。還原可將其恢復。",
         overlayOpacityLabel: "不透明度",
         comparisonGIF: "儲存前後對比 GIF",
+        printButton: "列印…",
         zoomToSelection: "縮放至所選範圍"
     )
 
@@ -339,6 +353,7 @@ extension ScreenshotInspectorStrings {
         resizeCaption: "標註會合併到圖片中。還原可將其恢復。",
         overlayOpacityLabel: "不透明度",
         comparisonGIF: "儲存前後對比 GIF",
+        printButton: "列印…",
         zoomToSelection: "縮放至所選範圍"
     )
 
@@ -360,6 +375,7 @@ extension ScreenshotInspectorStrings {
         resizeCaption: "Позначки стануть частиною зображення. Скасування поверне їх.",
         overlayOpacityLabel: "Непрозорість",
         comparisonGIF: "Зберегти GIF до і після",
+        printButton: "Друкувати…",
         zoomToSelection: "Збільшити виділення"
     )
 }
