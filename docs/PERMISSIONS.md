@@ -13,7 +13,7 @@ You can review or change every grant in System Settings, under Privacy and Secur
 | Camera | Yes | The camera preview mirror, floating or inside the notch |
 | Calendars | Yes | Upcoming appointments in the notch |
 | Bluetooth | Yes | Accessory battery levels in Monitor, optional accessory alerts in the notch and Bluetooth on sleep |
-| Files and Folders | Yes | Monitoring downloads in a folder you choose |
+| Files and Folders | Yes | Monitoring downloads in a folder you choose, and the iCloud Drive folder clipboard sync uses |
 | Notifications | Yes | Keep awake, battery, Monitor and update alerts |
 | Full Disk Access | Yes | A deeper uninstaller scan |
 | Administrator (one time) | Yes | Password free closed lid toggling |
@@ -107,6 +107,8 @@ The optional notch calendar asks for access when you press its permission button
 ## Files and Folders
 
 Download monitoring watches only the folder you choose in the system picker. Folder access is stored as a local bookmark and does not travel in a settings backup. If the folder becomes unavailable or access is revoked, the notch asks you to choose it again. It does not scan other folders or need Full Disk Access for this feature.
+
+Clipboard history sync, when you turn it on, reads and writes only its own folder, Vorssaint/Clipboard History in iCloud Drive. If macOS asks whether Vorssaint may access iCloud Drive, allowing it lets sync work. Nothing else in iCloud Drive is listed, opened or downloaded.
 
 ## Notifications
 
