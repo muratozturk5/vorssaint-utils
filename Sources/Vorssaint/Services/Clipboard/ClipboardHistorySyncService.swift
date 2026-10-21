@@ -19,15 +19,11 @@ import IOKit
 final class ClipboardHistorySyncService: ObservableObject {
     static let shared = ClipboardHistorySyncService()
 
-    enum Status: Equatable {
-        case off
-        case checking
-        case noICloudDrive
-        case unreachable
-        case synced(at: Date, otherMacs: Int)
-    }
+    typealias Status = ClipboardHistorySyncStatus
 
     @Published private(set) var status: Status = .off
+    /// True while this Mac reads the folder or writes its file.
+    @Published private(set) var isSyncing = false
 
     /// What this Mac remembers between launches: its deletions and pin
     /// changes, plus those adopted from the other Macs.
@@ -59,7 +55,12 @@ final class ClipboardHistorySyncService: ObservableObject {
     private var publishScheduled = false
     private var publishPending = false
     private var pullScheduled = false
-    private var pullInFlight = false
+    private var pullInFlight = false {
+        didSet { updateSyncing() }
+    }
+    private var publishInFlight = false {
+        didSet { updateSyncing() }
+    }
     private var pullAgain = false
     /// Merge even when no file changed: the local limits or filters moved, or
     /// an image was still on its way at the last look.
@@ -81,6 +82,20 @@ final class ClipboardHistorySyncService: ObservableObject {
 
     func syncWithPreferences() {
         wanted ? start() : stop()
+    }
+
+    /// Looks for the other Macs' changes and publishes this Mac's at once,
+    /// instead of at the next round. Nothing to do while one is under way.
+    func syncNow() {
+        guard running, !isSyncing else { return }
+        forceMerge = true
+        lastPublishNeeded = true
+        tick()
+    }
+
+    private func updateSyncing() {
+        let syncing = pullInFlight || publishInFlight
+        if isSyncing != syncing { isSyncing = syncing }
     }
 
     /// The settings switch. Turning it off also takes this Mac's copy out of
@@ -280,7 +295,8 @@ final class ClipboardHistorySyncService: ObservableObject {
     }
 
     private func publish() {
-        guard running, let device, let folder else { return }
+        guard running, let device, let folder, !publishInFlight else { return }
+        publishInFlight = true
         publishPending = false
         lastPublishNeeded = false
         let entries = ClipboardHistoryService.shared.entries
@@ -293,6 +309,17 @@ final class ClipboardHistorySyncService: ObservableObject {
         let imageDirectory = ClipboardImageStore.directory
         queue.async { [weak self] in
             guard let self else { return }
+            var succeeded = false
+            defer {
+                let otherMacs = self.cache.count
+                let wrote = succeeded
+                DispatchQueue.main.async {
+                    self.publishInFlight = false
+                    guard self.running else { return }
+                    self.status = wrote ? .synced(at: Date(), otherMacs: otherMacs) : .unreachable
+                    if self.publishPending { self.schedulePublish() }
+                }
+            }
             let records = ClipboardHistorySync.records(for: entries, policy: policy, pinChanges: pinChanges) {
                 entry in
                 guard let name = entry.imageFile, let imageDirectory,
@@ -302,7 +329,7 @@ final class ClipboardHistorySyncService: ObservableObject {
             }
             let file = ClipboardHistorySyncFile(device: device, records: records, deleted: deleted)
             guard let data = ClipboardHistorySync.encoded(file) else { return }
-            var succeeded = true
+            succeeded = true
             if data != self.lastWritten
                 || !FileManager.default.fileExists(atPath: folder.deviceFileURL(device).path) {
                 // Pictures first, so no Mac reads an entry before its picture.
@@ -324,11 +351,6 @@ final class ClipboardHistorySyncService: ObservableObject {
                 self.lastCollection = Date()
                 let own = records.compactMap { ClipboardHistorySync.imageHash(fromKey: $0.key) }
                 folder.collectGarbage(referenced: others.union(own))
-            }
-            let otherMacs = self.cache.count
-            DispatchQueue.main.async {
-                guard self.running else { return }
-                self.status = succeeded ? .synced(at: Date(), otherMacs: otherMacs) : .unreachable
             }
         }
     }

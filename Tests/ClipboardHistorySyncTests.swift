@@ -113,6 +113,7 @@ enum ClipboardHistorySyncTests {
             merging(suite)
             twoMacs(suite)
             folderSafety(suite)
+            statusDisplay(suite)
             strings(suite)
         }
     }
@@ -531,11 +532,64 @@ enum ClipboardHistorySyncTests {
                      "with iCloud Drive on, the folder sits in it under Vorssaint")
     }
 
+    /// The history window's status line, for every state sync can be in.
+    private static func statusDisplay(_ suite: TestSuite) {
+        let now = Date()
+        let english = FeatureStrings.clipboardSync(.enUS)
+        func shown(_ status: ClipboardHistorySyncStatus, syncing: Bool = false, at moment: Date = now,
+                   language: AppLanguage = .enUS) -> ClipboardSyncStatusDisplay {
+            ClipboardSyncStatusDisplay(status: status, syncing: syncing, now: moment, language: language)
+        }
+        suite.expect(!ClipboardSyncStatusDisplay.isShown(.off) && ClipboardSyncStatusDisplay.isShown(.checking)
+                     && ClipboardSyncStatusDisplay.isShown(.synced(at: now, otherMacs: 0)),
+                     "the window shows sync only while it is on")
+        let fresh = shown(.synced(at: now.addingTimeInterval(-20), otherMacs: 2))
+        suite.expect(fresh.text == "Synced just now · Other Macs: 2" && fresh.tone == .normal
+                     && fresh.symbol == "checkmark.icloud",
+                     "a sync under a minute old reads as just now, with the other Macs, found \(fresh.text)")
+        suite.expect(shown(.synced(at: now.addingTimeInterval(30), otherMacs: 1)).text.hasPrefix("Synced just now"),
+                     "a sync a changed clock puts ahead still reads as just now")
+        let synced = Date(timeIntervalSince1970: 1_800_000_000)
+        let twoMinutes = shown(.synced(at: synced, otherMacs: 1), at: synced.addingTimeInterval(125))
+        let fiveMinutes = shown(.synced(at: synced, otherMacs: 1), at: synced.addingTimeInterval(305))
+        suite.expect(twoMinutes.text.hasPrefix("Synced ") && !twoMinutes.text.hasPrefix("Synced just now")
+                     && twoMinutes.text.contains("2") && twoMinutes.text.hasSuffix(" · Other Macs: 1")
+                     && fiveMinutes.text.contains("5") && twoMinutes.text != fiveMinutes.text,
+                     "an older sync says how long ago, and the line moves on while the window stays open, found \(twoMinutes.text) then \(fiveMinutes.text)")
+        for status in [ClipboardHistorySyncStatus.checking, .noICloudDrive, .unreachable,
+                       .synced(at: now, otherMacs: 3)] {
+            let busy = shown(status, syncing: true)
+            suite.expect(busy.text == english.statusSyncing && busy.tone == .busy
+                         && busy.symbol == "arrow.clockwise.icloud",
+                         "while a read or write is under way the line says so, whatever came before (\(status))")
+        }
+        let checking = shown(.checking)
+        let off = shown(.noICloudDrive)
+        let unreachable = shown(.unreachable)
+        suite.expect(checking.text == "Checking…" && checking.tone == .busy
+                     && off.text == "iCloud Drive is off" && off.tone == .warning && off.symbol == "icloud.slash"
+                     && unreachable.text == "Can’t reach iCloud Drive" && unreachable.tone == .warning,
+                     "each state has its own short line")
+        suite.expect(fresh.help == english.statusHelp && off.help.hasPrefix(english.noICloudDrive)
+                     && off.help.hasSuffix(english.statusHelp) && unreachable.help.hasPrefix(english.unreachable),
+                     "the tooltip says when it syncs, and what to do when it cannot")
+        for language in AppLanguage.allCases {
+            let strings = FeatureStrings.clipboardSync(language)
+            let old = shown(.synced(at: synced, otherMacs: 4), at: synced.addingTimeInterval(3 * 3_600), language: language)
+            suite.expect(old.text.contains("3") && old.text.contains("4")
+                         && !old.text.contains("%") && old.text != strings.statusJustNow,
+                         "the status line takes its time and count in \(language.rawValue), found \(old.text)")
+            suite.expect(strings.statusHelp.contains("iCloud Drive") || language == .zhHans || language == .zhTW
+                         || language == .zhHK,
+                         "the tooltip names iCloud Drive (\(language.rawValue))")
+        }
+    }
+
     private static func strings(_ suite: TestSuite) {
         for language in AppLanguage.allCases {
             let text = FeatureStrings.clipboardSync(language)
             let values = Mirror(reflecting: text).children.compactMap { $0.value as? String }
-            suite.expect(values.count == 13 && values.allSatisfy { !$0.isEmpty },
+            suite.expect(values.count == 21 && values.allSatisfy { !$0.isEmpty },
                          "every sync string is translated (\(language.rawValue))")
             suite.expect(values.allSatisfy { !$0.contains("\u{2014}") && !$0.contains("\u{2013}") && !$0.contains("'") },
                          "sync strings use no long dashes and curly apostrophes (\(language.rawValue))")
