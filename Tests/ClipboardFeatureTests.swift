@@ -1127,6 +1127,8 @@ enum ClipboardFeatureTests {
                    "\(language.rawValue) clipboard groups are localized")
             suite.expect(!clipboardStrings.itemTitleLabel.isEmpty && !clipboardStrings.rename.isEmpty,
                    "\(language.rawValue) clipboard card names are localized")
+            suite.expect(!clipboardStrings.linkPreviewsToggle.isEmpty && !clipboardStrings.linkPreviewsCaption.isEmpty,
+                   "\(language.rawValue) clipboard link previews are localized")
             let layoutStrings = FeatureStrings.windowLayout(language)
             suite.expect(!layoutStrings.sixths.isEmpty
                    && !layoutStrings.topLeftSixth.isEmpty

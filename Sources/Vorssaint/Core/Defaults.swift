@@ -562,6 +562,7 @@ enum DefaultsKey {
     static let clipboardHistoryQuickPreview = "clipboardHistoryQuickPreview"
     static let clipboardHistoryLayout = "clipboardHistoryLayout" // cards | list, how the history window shows entries
     static let clipboardPinboards = "clipboardPinboards" // JSON list of named, colored groups for pinned entries
+    static let clipboardLinkPreviews = "clipboardLinkPreviews" // fetch a copied link's title and picture for its card
     static let clipboardHistoryWindowWidth = "clipboardHistoryWindowWidth" // the list window's chosen size
     static let clipboardHistoryWindowHeight = "clipboardHistoryWindowHeight"
     static let clipboardHistoryMenuBarPreview = "clipboardHistoryMenuBarPreview" // show latest copy next to the menu bar icon
@@ -1767,6 +1768,7 @@ enum Defaults {
         DefaultsKey.clipboardHistoryQuickPreview: false,
         DefaultsKey.clipboardHistoryLayout: ClipboardHistoryLayout.list.rawValue,
         DefaultsKey.clipboardPinboards: "",
+        DefaultsKey.clipboardLinkPreviews: false,
         DefaultsKey.clipboardHistoryWindowWidth: 0.0,
         DefaultsKey.clipboardHistoryWindowHeight: 0.0,
         DefaultsKey.clipboardHistoryMenuBarPreview: false,
