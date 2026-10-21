@@ -207,21 +207,27 @@ enum ScreenshotInspectionTests {
 
     static func tools(_ suite: TestSuite) {
         typealias Tool = ScreenshotSupport.Tool
-        suite.expect(Tool.editorTools.contains(.ruler)
+        suite.expect(Tool.editorTools.contains(.ruler) && Tool.editorTools.contains(.magnifier)
                      && !Tool.editorTools.contains(.guide) && !Tool.editorTools.contains(.image),
-                     "the ruler is in the rail; guides and images are content only")
+                     "the ruler and the magnifier are in the rail; guides and images are content only")
         let saved = "select,arrow,pixelate,crop,text,sticker,rect,highlight,freehand,line,ellipse,counter,redact,spotlight,expandCanvas"
         let ordered = Tool.ordered(from: saved)
         suite.expect(Array(ordered.prefix(15).map(\.rawValue)) == saved.split(separator: ",").map(String.init)
-                     && ordered.last == .ruler,
-                     "an order saved before the ruler keeps its keys and gains it at the end")
+                     && Array(ordered.suffix(2)) == [.ruler, .magnifier],
+                     "an order saved before the new tools keeps its keys and gains them at the end")
         suite.expect(Tool.ordered(from: "guide,ruler").first == .ruler
                      && Tool.startingTool(remembered: "guide") == .arrow
                      && Tool.startingTool(remembered: "ruler") == .ruler
                      && Tool.bindings(from: "guide=:1").isEmpty,
                      "a guide is never a rail tool, a starting tool or a binding")
-        suite.expect(!Tool.ruler.dragsRect && !Tool.ruler.resizesWithHandles,
-                     "a ruler is dragged as a line")
+        suite.expect(!Tool.ruler.dragsRect && !Tool.ruler.resizesWithHandles
+                     && Tool.magnifier.dragsRect && Tool.magnifier.resizesWithHandles,
+                     "a ruler is dragged as a line and a magnifier as an area")
+        suite.expect(ScreenshotSupport.Annotation(tool: .magnifier).magnification == 2
+                     && ScreenshotSupport.sanitizedMagnification(3) == 3
+                     && ScreenshotSupport.sanitizedMagnification(0) == 2
+                     && ScreenshotSupport.sanitizedMagnification(9) == 2,
+                     "a magnifier starts at twice the size and an unknown magnification falls back to it")
         let ruler = ScreenshotSupport.Annotation(tool: .ruler, color: .blue, stroke: .large)
         suite.expect(ScreenshotSupport.selectionStyle(for: ruler)
                      == ScreenshotSupport.SelectionStyle(color: .blue, stroke: .large, arrowStyle: nil),
@@ -231,6 +237,25 @@ enum ScreenshotInspectionTests {
     // MARK: - Rendering
 
     static func rendering(_ suite: TestSuite) {
+        // One black column at x = 20 on white.
+        let base = image(width: 40, height: 40) { x, _ in x == 20 ? black : white }
+        var lens = ScreenshotSupport.Annotation(tool: .magnifier, rect: CGRect(x: 10, y: 10, width: 20, height: 20),
+                                                color: .red, stroke: .small)
+        lens.magnification = 2
+        let magnified = rendered(base, [lens])
+        suite.expect(pixel(base, 21, 20) == white && pixel(magnified, 21, 20) == black
+                     && pixel(magnified, 2, 2) == white,
+                     "a magnifier shows what is under its centre twice as large, and only inside itself")
+        let redaction = ScreenshotSupport.Annotation(tool: .redact, rect: CGRect(x: 16, y: 16, width: 8, height: 8),
+                                                     color: .blue)
+        let hidden = rendered(base, [redaction, lens])
+        let inside = pixel(hidden, 21, 20)
+        suite.expect(inside.blue > 200 && inside.red < 60,
+                     "a magnifier over a covered area enlarges the cover, never what it hides")
+        let above = rendered(base, [lens, redaction])
+        suite.expect(pixel(above, 21, 20).blue > 200,
+                     "a mark above the magnifier still draws over it")
+
         let ruler = ScreenshotSupport.Annotation(tool: .ruler, points: [CGPoint(x: 2, y: 30), CGPoint(x: 38, y: 30)],
                                                  color: .red, stroke: .large)
         let measured = rendered(image(width: 40, height: 40) { _, _ in white }, [ruler])
@@ -257,6 +282,9 @@ enum ScreenshotInspectionTests {
         suite.expect(Defaults.registeredDefaults[DefaultsKey.screenshotMeasureUnit] as? String == ""
                      && SettingsBackupSupport.exportKeys().contains(DefaultsKey.screenshotMeasureUnit),
                      "the ruler starts in points and its unit travels in backups")
+        suite.expect(Defaults.registeredDefaults[DefaultsKey.screenshotLastMagnification] as? Int == 2
+                     && SettingsBackupSupport.exportKeys().contains(DefaultsKey.screenshotLastMagnification),
+                     "the magnifier starts at 2× and its choice travels in backups")
         for language in AppLanguage.allCases {
             let strings = FeatureStrings.screenshotInspector(language)
             let values = Mirror(reflecting: strings).children.compactMap { $0.value as? String }

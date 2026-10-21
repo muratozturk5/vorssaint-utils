@@ -3,9 +3,9 @@
 
 import AppKit
 
-/// Rulers and guides. Like every mark, they draw in image pixels with a
-/// top-left origin, and the canvas, the live measurement and the exporter
-/// share this code.
+/// Rulers, guides and magnifiers. Like every mark, they draw in image pixels
+/// with a top-left origin, and the canvas, the live measurement and the
+/// exporter share this code.
 extension ScreenshotRenderer {
     /// The ruler's own line is thinner than a shape's at the same setting:
     /// it marks a distance, and a heavy stroke would cover the edges it
@@ -115,6 +115,55 @@ extension ScreenshotRenderer {
         context.beginPath()
         context.move(to: annotation.points[0])
         context.addLine(to: annotation.points[1])
+        context.strokePath()
+        context.restoreGState()
+    }
+
+    /// A round lens over its own area, showing what is below it enlarged:
+    /// the capture and every mark under the lens, so a blurred or erased
+    /// area stays hidden inside it too. Pixels stay square at any zoom.
+    static func drawMagnifier(_ annotation: ScreenshotSupport.Annotation,
+                              below: [ScreenshotSupport.Annotation],
+                              in context: CGContext,
+                              blurSources: BlurSources,
+                              imageSize: CGSize,
+                              scale: CGFloat,
+                              annotationShadowsEnabled: Bool,
+                              skippingText editingID: UUID?,
+                              spotlightDimStrength: CGFloat) {
+        let rect = annotation.rect.standardized
+        guard rect.width >= 2, rect.height >= 2 else { return }
+        let magnification = CGFloat(ScreenshotSupport.sanitizedMagnification(annotation.magnification))
+        let lens = CGPath(ellipseIn: rect, transform: nil)
+        let width = annotation.stroke.width * scale
+
+        context.saveGState()
+        context.addPath(lens)
+        context.clip()
+        context.translateBy(x: rect.midX, y: rect.midY)
+        context.scaleBy(x: magnification, y: magnification)
+        context.translateBy(x: -rect.midX, y: -rect.midY)
+        context.interpolationQuality = .none
+        if let image = blurSources.image {
+            let origin = blurSources.imageOrigin
+            let target = CGRect(x: origin.x, y: origin.y, width: CGFloat(image.width),
+                                height: CGFloat(image.height))
+            context.saveGState()
+            context.translateBy(x: 0, y: target.minY + target.maxY)
+            context.scaleBy(x: 1, y: -1)
+            context.draw(image, in: target)
+            context.restoreGState()
+        }
+        drawAnnotationLayers(below, in: context, blurSources: blurSources, imageSize: imageSize,
+                             scale: scale, annotationShadowsEnabled: annotationShadowsEnabled,
+                             skippingText: editingID, spotlightDimStrength: spotlightDimStrength)
+        context.restoreGState()
+
+        context.saveGState()
+        applyShadow(context, scale: scale, enabled: annotationShadowsEnabled)
+        context.setStrokeColor(color(annotation.color))
+        context.setLineWidth(width)
+        context.addPath(CGPath(ellipseIn: rect.insetBy(dx: width / 2, dy: width / 2), transform: nil))
         context.strokePath()
         context.restoreGState()
     }

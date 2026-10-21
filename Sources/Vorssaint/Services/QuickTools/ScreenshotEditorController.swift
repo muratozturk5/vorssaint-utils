@@ -117,6 +117,13 @@ final class ScreenshotEditorModel: ObservableObject, BackdropEditing {
             applyStickerToSelection()
         }
     }
+    /// How many times a new magnifier enlarges, remembered between captures.
+    @Published var magnification: Int {
+        didSet {
+            UserDefaults.standard.set(magnification, forKey: DefaultsKey.screenshotLastMagnification)
+            applyMagnificationToSelection()
+        }
+    }
     @Published var annotationShadowsEnabled: Bool {
         didSet {
             UserDefaults.standard.set(annotationShadowsEnabled,
@@ -266,6 +273,8 @@ final class ScreenshotEditorModel: ObservableObject, BackdropEditing {
             defaults.string(forKey: DefaultsKey.screenshotLastArrowStyle))
         sticker = ScreenshotSupport.StickerID.sanitized(
             defaults.string(forKey: DefaultsKey.screenshotLastSticker))
+        magnification = ScreenshotSupport.sanitizedMagnification(
+            defaults.integer(forKey: DefaultsKey.screenshotLastMagnification))
         annotationShadowsEnabled = defaults.bool(
             forKey: DefaultsKey.screenshotAnnotationShadows)
         let rawStyle = defaults.string(forKey: DefaultsKey.screenshotBackdropStyle) ?? ""
@@ -773,6 +782,19 @@ final class ScreenshotEditorModel: ObservableObject, BackdropEditing {
         if annotation.tool == .sticker {
             sticker = ScreenshotSupport.StickerID.sanitized(annotation.text)
         }
+        if annotation.tool == .magnifier {
+            magnification = ScreenshotSupport.sanitizedMagnification(annotation.magnification)
+        }
+    }
+
+    private func applyMagnificationToSelection() {
+        guard let selectedID,
+              let index = annotations.firstIndex(where: { $0.id == selectedID }),
+              annotations[index].tool == .magnifier,
+              annotations[index].magnification != magnification
+        else { return }
+        registerUndo()
+        annotations[index].magnification = magnification
     }
 
     // MARK: - Gestures (image-pixel coordinates)
@@ -826,14 +848,15 @@ final class ScreenshotEditorModel: ObservableObject, BackdropEditing {
                 tool: tool, points: [point], color: color, stroke: stroke)
             annotations.append(annotation)
             draftID = annotation.id
-        case .rect, .ellipse, .highlight, .pixelate, .redact, .spotlight:
+        case .rect, .ellipse, .highlight, .pixelate, .redact, .spotlight, .magnifier:
             if tool == .pixelate { ensureBlurSample(blurStyle, level: blurLevel) }
             registerUndo()
             dragRegistered = true
-            let annotation = ScreenshotSupport.Annotation(
+            var annotation = ScreenshotSupport.Annotation(
                 tool: tool, rect: CGRect(origin: point, size: .zero),
                 color: color, stroke: stroke, blurLevel: blurLevel,
                 blurStyle: blurStyle, blurTextOnly: blurTextOnly)
+            annotation.magnification = magnification
             annotations.append(annotation)
             draftID = annotation.id
         case .expandCanvas:
@@ -921,7 +944,7 @@ final class ScreenshotEditorModel: ObservableObject, BackdropEditing {
             updateDraft { $0.points = [dragStart, end] }
         case .freehand:
             updateDraft { $0.points.append(point) }
-        case .rect, .ellipse, .highlight, .pixelate, .redact, .spotlight:
+        case .rect, .ellipse, .highlight, .pixelate, .redact, .spotlight, .magnifier:
             updateDraft { $0.rect = ScreenshotSupport.selectionRect(from: dragStart, to: point) }
         case .expandCanvas:
             if let handle = expansionHandle, let start = expansionStartPoint {
@@ -1034,7 +1057,7 @@ final class ScreenshotEditorModel: ObservableObject, BackdropEditing {
             annotations = ScreenshotSupport.renumberingCounters(annotations)
             selectedID = annotation.id
         case .arrow, .line, .rect, .ellipse, .highlight, .pixelate, .redact, .spotlight, .freehand,
-             .ruler:
+             .ruler, .magnifier:
             if isTap {
                 // A tap never leaves a degenerate shape behind; treat it as
                 // picking whatever is under the cursor instead.
@@ -1158,7 +1181,7 @@ final class ScreenshotEditorModel: ObservableObject, BackdropEditing {
                     <= radius + 4 * scale {
                     return annotation.id
                 }
-        case .rect, .ellipse, .highlight, .pixelate, .redact, .spotlight:
+        case .rect, .ellipse, .highlight, .pixelate, .redact, .spotlight, .magnifier:
                 let outer = annotation.rect.insetBy(dx: -tolerance / 2, dy: -tolerance / 2)
                 guard outer.contains(point) else { continue }
                 if includeShapeInteriors {

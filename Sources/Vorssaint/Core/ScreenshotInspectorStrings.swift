@@ -6,8 +6,10 @@ import Foundation
 /// Localized strings for the screenshot editor's measuring and inspection tools.
 struct ScreenshotInspectorStrings {
     let toolRuler: String
+    let toolMagnifier: String
     let measureHint: String
     let measureUnitLabel: String
+    let magnificationLabel: String
     let pointerColorHint: String
     let averageColorLabel: String
     let contrastLabel: String
@@ -40,8 +42,10 @@ extension FeatureStrings {
 extension ScreenshotInspectorStrings {
     static let enUS = ScreenshotInspectorStrings(
         toolRuler: "Ruler",
+        toolMagnifier: "Magnifier",
         measureHint: "Arrow keys measure the gap under the pointer, ⌥S and ⌥D show guides, a click marks it on the capture",
         measureUnitLabel: "Unit",
+        magnificationLabel: "Magnification",
         pointerColorHint: "Tab copies this color, ⇧Tab the nearby text color",
         averageColorLabel: "Average color",
         contrastLabel: "Contrast",
@@ -51,8 +55,10 @@ extension ScreenshotInspectorStrings {
 
     static let ptBR = ScreenshotInspectorStrings(
         toolRuler: "Régua",
+        toolMagnifier: "Lupa",
         measureHint: "As setas medem o espaço sob o ponteiro, ⌥S e ⌥D mostram guias, um clique marca a medida na captura",
         measureUnitLabel: "Unidade",
+        magnificationLabel: "Ampliação",
         pointerColorHint: "Tab copia esta cor, ⇧Tab a cor do texto próximo",
         averageColorLabel: "Cor média",
         contrastLabel: "Contraste",
@@ -62,8 +68,10 @@ extension ScreenshotInspectorStrings {
 
     static let tr = ScreenshotInspectorStrings(
         toolRuler: "Cetvel",
+        toolMagnifier: "Büyüteç",
         measureHint: "Ok tuşları imlecin altındaki boşluğu ölçer, ⌥S ve ⌥D kılavuz gösterir, tıklayınca ölçü görsele eklenir",
         measureUnitLabel: "Birim",
+        magnificationLabel: "Büyütme",
         pointerColorHint: "Tab bu rengi, ⇧Tab yakındaki metnin rengini kopyalar",
         averageColorLabel: "Ortalama renk",
         contrastLabel: "Kontrast",
@@ -73,8 +81,10 @@ extension ScreenshotInspectorStrings {
 
     static let ru = ScreenshotInspectorStrings(
         toolRuler: "Линейка",
+        toolMagnifier: "Лупа",
         measureHint: "Стрелки измеряют промежуток под указателем, ⌥S и ⌥D показывают направляющие, щелчок наносит размер на снимок",
         measureUnitLabel: "Единицы",
+        magnificationLabel: "Увеличение",
         pointerColorHint: "Tab копирует этот цвет, ⇧Tab цвет текста рядом",
         averageColorLabel: "Средний цвет",
         contrastLabel: "Контраст",
@@ -84,8 +94,10 @@ extension ScreenshotInspectorStrings {
 
     static let es = ScreenshotInspectorStrings(
         toolRuler: "Regla",
+        toolMagnifier: "Lupa",
         measureHint: "Las flechas miden el espacio bajo el puntero, ⌥S y ⌥D muestran guías y un clic marca la medida en la captura",
         measureUnitLabel: "Unidad",
+        magnificationLabel: "Aumento",
         pointerColorHint: "Tab copia este color, ⇧Tab el color del texto cercano",
         averageColorLabel: "Color medio",
         contrastLabel: "Contraste",
@@ -95,8 +107,10 @@ extension ScreenshotInspectorStrings {
 
     static let sk = ScreenshotInspectorStrings(
         toolRuler: "Pravítko",
+        toolMagnifier: "Lupa",
         measureHint: "Šípky zmerajú medzeru pod ukazovateľom, ⌥S a ⌥D zobrazia vodiace čiary, kliknutie vyznačí mieru na snímke",
         measureUnitLabel: "Jednotka",
+        magnificationLabel: "Zväčšenie",
         pointerColorHint: "Tab skopíruje túto farbu, ⇧Tab farbu blízkeho textu",
         averageColorLabel: "Priemerná farba",
         contrastLabel: "Kontrast",
@@ -106,8 +120,10 @@ extension ScreenshotInspectorStrings {
 
     static let de = ScreenshotInspectorStrings(
         toolRuler: "Lineal",
+        toolMagnifier: "Lupe",
         measureHint: "Pfeiltasten messen den Abstand unter dem Zeiger, ⌥S und ⌥D zeigen Hilfslinien, ein Klick setzt das Maß aufs Bild",
         measureUnitLabel: "Einheit",
+        magnificationLabel: "Vergrößerung",
         pointerColorHint: "Tab kopiert diese Farbe, ⇧Tab die Farbe des Texts in der Nähe",
         averageColorLabel: "Durchschnittsfarbe",
         contrastLabel: "Kontrast",
@@ -117,8 +133,10 @@ extension ScreenshotInspectorStrings {
 
     static let fr = ScreenshotInspectorStrings(
         toolRuler: "Règle",
+        toolMagnifier: "Loupe",
         measureHint: "Les flèches mesurent l’espace sous le pointeur, ⌥S et ⌥D affichent des repères, un clic inscrit la mesure sur la capture",
         measureUnitLabel: "Unité",
+        magnificationLabel: "Grossissement",
         pointerColorHint: "Tab copie cette couleur, ⇧Tab celle du texte voisin",
         averageColorLabel: "Couleur moyenne",
         contrastLabel: "Contraste",
@@ -128,8 +146,10 @@ extension ScreenshotInspectorStrings {
 
     static let it = ScreenshotInspectorStrings(
         toolRuler: "Righello",
+        toolMagnifier: "Lente",
         measureHint: "Le frecce misurano lo spazio sotto il puntatore, ⌥S e ⌥D mostrano le guide, un clic riporta la misura sulla cattura",
         measureUnitLabel: "Unità",
+        magnificationLabel: "Ingrandimento",
         pointerColorHint: "Tab copia questo colore, ⇧Tab il colore del testo vicino",
         averageColorLabel: "Colore medio",
         contrastLabel: "Contrasto",
@@ -139,8 +159,10 @@ extension ScreenshotInspectorStrings {
 
     static let ja = ScreenshotInspectorStrings(
         toolRuler: "定規",
+        toolMagnifier: "拡大鏡",
         measureHint: "矢印キーでポインタ下の間隔を測定、⌥S と ⌥D でガイドを表示、クリックで寸法を画像に書き込みます",
         measureUnitLabel: "単位",
+        magnificationLabel: "倍率",
         pointerColorHint: "Tab でこの色を、⇧Tab で近くの文字色をコピー",
         averageColorLabel: "平均色",
         contrastLabel: "コントラスト",
@@ -150,8 +172,10 @@ extension ScreenshotInspectorStrings {
 
     static let ko = ScreenshotInspectorStrings(
         toolRuler: "눈금자",
+        toolMagnifier: "돋보기",
         measureHint: "화살표 키로 포인터 아래 간격을 재고, ⌥S와 ⌥D로 안내선을 표시하며, 클릭하면 치수를 이미지에 남깁니다",
         measureUnitLabel: "단위",
+        magnificationLabel: "배율",
         pointerColorHint: "Tab은 이 색상을, ⇧Tab은 근처 텍스트 색상을 복사합니다",
         averageColorLabel: "평균 색상",
         contrastLabel: "대비",
@@ -161,8 +185,10 @@ extension ScreenshotInspectorStrings {
 
     static let zhHans = ScreenshotInspectorStrings(
         toolRuler: "标尺",
+        toolMagnifier: "放大镜",
         measureHint: "方向键测量指针下方的间距，⌥S 和 ⌥D 显示参考线，点按可将尺寸标注到图片上",
         measureUnitLabel: "单位",
+        magnificationLabel: "放大倍数",
         pointerColorHint: "Tab 拷贝此颜色，⇧Tab 拷贝附近文字的颜色",
         averageColorLabel: "平均颜色",
         contrastLabel: "对比度",
@@ -172,8 +198,10 @@ extension ScreenshotInspectorStrings {
 
     static let zhTW = ScreenshotInspectorStrings(
         toolRuler: "尺規",
+        toolMagnifier: "放大鏡",
         measureHint: "方向鍵測量指標下方的間距，⌥S 和 ⌥D 顯示參考線，按一下可將尺寸標註到圖片上",
         measureUnitLabel: "單位",
+        magnificationLabel: "放大倍率",
         pointerColorHint: "Tab 拷貝此顏色，⇧Tab 拷貝附近文字的顏色",
         averageColorLabel: "平均顏色",
         contrastLabel: "對比",
@@ -183,8 +211,10 @@ extension ScreenshotInspectorStrings {
 
     static let zhHK = ScreenshotInspectorStrings(
         toolRuler: "尺規",
+        toolMagnifier: "放大鏡",
         measureHint: "方向鍵量度指標下方的間距，⌥S 和 ⌥D 顯示參考線，按一下可將尺寸標註到圖片上",
         measureUnitLabel: "單位",
+        magnificationLabel: "放大倍率",
         pointerColorHint: "Tab 拷貝此顏色，⇧Tab 拷貝附近文字的顏色",
         averageColorLabel: "平均顏色",
         contrastLabel: "對比",
@@ -194,8 +224,10 @@ extension ScreenshotInspectorStrings {
 
     static let uk = ScreenshotInspectorStrings(
         toolRuler: "Лінійка",
+        toolMagnifier: "Лупа",
         measureHint: "Стрілки вимірюють проміжок під вказівником, ⌥S і ⌥D показують напрямні, клацання наносить розмір на знімок",
         measureUnitLabel: "Одиниці",
+        magnificationLabel: "Збільшення",
         pointerColorHint: "Tab копіює цей колір, ⇧Tab колір тексту поруч",
         averageColorLabel: "Середній колір",
         contrastLabel: "Контраст",

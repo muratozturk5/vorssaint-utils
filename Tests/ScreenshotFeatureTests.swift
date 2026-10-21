@@ -3148,7 +3148,7 @@ enum ScreenshotFeatureTests {
                 && ScreenshotSupport.joinedWords(recognizedWords, selected: []).isEmpty,
                "out of range or empty selections copy nothing")
         let defaultScreenshotTools = ScreenshotSupport.Tool.editorTools
-        suite.expect(defaultScreenshotTools.count == 16
+        suite.expect(defaultScreenshotTools.count == 17
                 && Array(defaultScreenshotTools.prefix(9))
                     == [.select, .arrow, .pixelate, .crop, .text, .sticker,
                         .rect, .highlight, .freehand],
@@ -3162,8 +3162,8 @@ enum ScreenshotFeatureTests {
         let customScreenshotTools = ScreenshotSupport.Tool.ordered(
             from: "crop,arrow,arrow,invalid")
         suite.expect(Array(customScreenshotTools.prefix(2)) == [.crop, .arrow]
-                && customScreenshotTools.count == 16
-                && Set(customScreenshotTools).count == 16,
+                && customScreenshotTools.count == 17
+                && Set(customScreenshotTools).count == 17,
                "a saved screenshot tool order drops invalid duplicates and appends missing tools")
         suite.expect(ScreenshotSupport.Tool.shortcutTool(number: 1,
                                                    orderRaw: nil,

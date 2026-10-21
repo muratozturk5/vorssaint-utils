@@ -1035,7 +1035,8 @@ struct ScreenshotEditorView: View {
 
     private var showsColorControls: Bool {
         switch model.tool {
-        case .arrow, .line, .rect, .ellipse, .freehand, .highlight, .text, .counter, .redact, .ruler:
+        case .arrow, .line, .rect, .ellipse, .freehand, .highlight, .text, .counter, .redact,
+             .ruler, .magnifier:
             return true
         case .select:
             guard let selectedID = model.selectedID,
@@ -1048,6 +1049,17 @@ struct ScreenshotEditorView: View {
         case .sticker, .pixelate, .crop, .spotlight, .image, .expandCanvas, .guide:
             return false
         }
+    }
+
+    /// A picked magnifier keeps its magnification control, like a picked
+    /// spotlight region keeps its dim.
+    private var showsMagnifierControls: Bool {
+        if model.tool == .magnifier { return true }
+        guard model.tool == .select,
+              let selectedID = model.selectedID,
+              let selected = model.annotations.first(where: { $0.id == selectedID })
+        else { return false }
+        return selected.tool == .magnifier
     }
 
     /// A picked region keeps the dim control, so its strength changes
@@ -1228,6 +1240,10 @@ struct ScreenshotEditorView: View {
                 spotlightDimControl
                 Divider().frame(height: 16)
             }
+            if showsMagnifierControls {
+                magnificationControl
+                Divider().frame(height: 16)
+            }
             if model.tool == .ruler {
                 ScreenshotMeasureUnitControl(inspector: model.inspector,
                                              label: inspectorStrings.measureUnitLabel)
@@ -1337,6 +1353,20 @@ struct ScreenshotEditorView: View {
         .fixedSize()
         .screenshotSafeHelp(strings.toolSticker)
         .accessibilityLabel(strings.toolSticker)
+    }
+
+    private var magnificationControl: some View {
+        Picker(inspectorStrings.magnificationLabel, selection: $model.magnification) {
+            ForEach(ScreenshotSupport.magnifications, id: \.self) { value in
+                Text("\(value)×").tag(value)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .controlSize(.small)
+        .fixedSize()
+        .screenshotSafeHelp(inspectorStrings.magnificationLabel)
+        .accessibilityLabel(inspectorStrings.magnificationLabel)
     }
 
     private var cropBar: some View {
@@ -1922,6 +1952,7 @@ extension ScreenshotSupport.Tool {
         case .image: return "photo"
         case .expandCanvas: return "arrow.up.left.and.arrow.down.right"
         case .ruler, .guide: return "ruler"
+        case .magnifier: return "plus.magnifyingglass"
         }
     }
 
@@ -1944,6 +1975,7 @@ extension ScreenshotSupport.Tool {
         case .image: return strings.pastedImage
         case .expandCanvas: return strings.toolExpandCanvas
         case .ruler, .guide: return FeatureStrings.screenshotInspector(L10n.shared.language).toolRuler
+        case .magnifier: return FeatureStrings.screenshotInspector(L10n.shared.language).toolMagnifier
         }
     }
 }

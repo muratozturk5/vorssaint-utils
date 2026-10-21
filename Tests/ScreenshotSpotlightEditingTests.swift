@@ -61,6 +61,7 @@ enum ScreenshotSpotlightEditingTests {
         var blurLevel = ScreenshotSupport.BlurStrength.defaultLevel
         var blurStyle: ScreenshotSupport.BlurStyleID = .pixelate
         var blurTextOnly = false
+        var magnification = ScreenshotSupport.defaultMagnification
         let inspector = Inspector()
         var selectDrags: [CGPoint] = []
 
@@ -204,13 +205,20 @@ enum ScreenshotSpotlightEditingTests {
                 && measuring.annotations.last?.text == "px"
                 && measuring.draftID == measuring.annotations.last?.id,
                "a ruler starts as a line that keeps the unit it was drawn in")
+        let lens = Model(image: image)
+        lens.tool = .magnifier
+        lens.magnification = 3
+        lens.beginDrag(at: CGPoint(x: 10, y: 10))
+        suite.expect(lens.annotations.last?.tool == .magnifier && lens.annotations.last?.magnification == 3,
+               "a magnifier starts at the chosen magnification")
         let live = Model(image: image)
         live.tool = .select
         live.inspector.liveMode = .distance(.horizontal)
         Bar(model: live).updateHoverCursor(at: CGPoint(x: 1, y: 1))
         suite.expect(NSCursor.current === NSCursor.crosshair,
                "the pointer shows a crosshair while measuring")
-        suite.expect(Bar(model: model(tool: .select, selected: .ruler)).showsColorControls,
-               "a picked ruler takes a color and a thickness")
+        suite.expect(Bar(model: model(tool: .select, selected: .ruler)).showsColorControls
+                && Bar(model: model(tool: .magnifier, selected: .rect)).showsColorControls,
+               "rulers and magnifiers take a color and a thickness")
     }
 }

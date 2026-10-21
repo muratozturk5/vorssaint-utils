@@ -1445,7 +1445,7 @@ enum ScreenshotSupport {
         // mapping for keys 1 through 9. Put the common actions first.
         case select, arrow, pixelate, crop, text, sticker, rect, highlight,
              freehand, line, ellipse, counter, redact, spotlight, expandCanvas,
-             ruler, image, guide
+             ruler, magnifier, image, guide
 
         /// Pasted images and imprinted guides are content only: they are made
         /// by pasting and by the guide keys, never picked in the tool rail.
@@ -1464,7 +1464,7 @@ enum ScreenshotSupport {
         /// Tools that create an annotation by dragging a rectangle.
         var dragsRect: Bool {
             switch self {
-            case .rect, .ellipse, .highlight, .pixelate, .redact, .spotlight: return true
+            case .rect, .ellipse, .highlight, .pixelate, .redact, .spotlight, .magnifier: return true
             case .select, .arrow, .line, .freehand, .text, .sticker, .counter, .crop, .expandCanvas, .image,
                  .ruler, .guide:
                 return false
@@ -1804,6 +1804,14 @@ enum ScreenshotSupport {
         }
     }
 
+    /// The magnifications a magnifier offers; it starts at the first.
+    static let magnifications = [2, 3, 4]
+    static let defaultMagnification = 2
+
+    static func sanitizedMagnification(_ value: Int) -> Int {
+        magnifications.contains(value) ? value : defaultMagnification
+    }
+
     static func randomScribbleSeed() -> UInt64 {
         UInt64.random(in: UInt64.min...UInt64.max)
     }
@@ -1879,6 +1887,8 @@ enum ScreenshotSupport {
         var number: Int
         var imageAsset: ImageAsset?
         var renderReferenceSize: CGSize?
+        /// How many times a magnifier enlarges what is under it.
+        var magnification: Int = ScreenshotSupport.defaultMagnification
 
         init(id: UUID = UUID(),
              tool: Tool,
@@ -1935,7 +1945,7 @@ enum ScreenshotSupport {
             return SelectionStyle(color: annotation.color,
                                   stroke: annotation.stroke,
                                   arrowStyle: annotation.arrowStyle)
-        case .line, .rect, .ellipse, .freehand, .ruler:
+        case .line, .rect, .ellipse, .freehand, .ruler, .magnifier:
             return SelectionStyle(color: annotation.color,
                                   stroke: annotation.stroke,
                                   arrowStyle: nil)
