@@ -437,6 +437,21 @@ enum ClipboardFeatureTests {
         suite.expect(searchCache.foldCount == initialFoldCount,
                      "keystrokes reuse folded entries without refolding a single one")
 
+        // A formatted copy shows its own fonts and vivid colors, while black
+        // text takes the label color so it reads in dark mode too.
+        let formatted = NSMutableAttributedString(string: "Title body", attributes: [
+            .font: NSFont.boldSystemFont(ofSize: 40), .foregroundColor: NSColor.black,
+            .backgroundColor: NSColor.yellow])
+        formatted.addAttribute(.foregroundColor, value: NSColor.systemRed, range: NSRange(location: 6, length: 4))
+        let shown = ClipboardRichTextStore.displayString(formatted)
+        let titleColor = shown.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor
+        let bodyColor = shown.attribute(.foregroundColor, at: 7, effectiveRange: nil) as? NSColor
+        let shownFont = shown.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+        suite.expect(titleColor == NSColor.labelColor && bodyColor == NSColor.systemRed
+                && shown.attribute(.backgroundColor, at: 0, effectiveRange: nil) == nil
+                && (shownFont?.pointSize ?? 0) <= 17
+                && shownFont?.fontDescriptor.symbolicTraits.contains(.bold) == true,
+               "formatted text keeps its weight and vivid colors at a card's size, with black made adaptive")
         // A card shows a link only for an entry that is one web address.
         suite.expect(ClipboardHistoryEntry(text: "  https://example.com/home  ").linkURL?.host == "example.com"
                 && ClipboardHistoryEntry(text: "http://example.com/a?b=c").linkURL != nil,
