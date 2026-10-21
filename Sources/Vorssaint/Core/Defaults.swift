@@ -699,6 +699,8 @@ enum DefaultsKey {
     static let screenshotSpotlightDim = "screenshotSpotlightDim"
     static let screenshotLastArrowStyle = "screenshotLastArrowStyle"
     static let screenshotLastSticker = "screenshotLastSticker"
+    static let screenshotMeasureUnit = "screenshotMeasureUnit"       // "" points | px
+    static let screenshotLastMagnification = "screenshotLastMagnification"
     static let screenshotAnnotationShadows = "screenshotAnnotationShadows"
     static let screenshotToolOrder = "screenshotToolOrder"
     static let screenshotToolShortcuts = "screenshotToolShortcuts"
@@ -1906,6 +1908,8 @@ enum Defaults {
         DefaultsKey.screenshotSpotlightDim: Double(ScreenshotSupport.defaultSpotlightDim),
         DefaultsKey.screenshotLastArrowStyle: "filled",
         DefaultsKey.screenshotLastSticker: "check",
+        DefaultsKey.screenshotMeasureUnit: "",
+        DefaultsKey.screenshotLastMagnification: ScreenshotSupport.defaultMagnification,
         DefaultsKey.screenshotAnnotationShadows: false,
         DefaultsKey.screenshotToolOrder: ScreenshotSupport.Tool.defaultOrderStorage,
         DefaultsKey.screenshotToolShortcutsEnabled: true,

@@ -348,6 +348,7 @@ if (( TEST )); then
         Sources/Vorssaint/Core/MediaImageStrings.swift
         Sources/Vorssaint/Core/QuickToggleStrings.swift
         Sources/Vorssaint/Core/ScreenshotStrings.swift
+        Sources/Vorssaint/Core/ScreenshotInspectorStrings.swift
         Sources/Vorssaint/Core/RecentCaptureStrings.swift
         Sources/Vorssaint/Core/RecorderStrings.swift
         Sources/Vorssaint/Core/RecorderShareStrings.swift
@@ -517,6 +518,9 @@ if (( TEST )); then
         Sources/Vorssaint/UI/Settings/MonitorToken.swift
         Sources/Vorssaint/Services/QuickTools/ScreenshotRenderer.swift
         Sources/Vorssaint/Services/QuickTools/ScreenshotImageLayerRendering.swift
+        Sources/Vorssaint/Services/QuickTools/ScreenshotInspectionRendering.swift
+        Sources/Vorssaint/Services/QuickTools/ScreenshotInspectionSupport.swift
+        Sources/Vorssaint/Services/QuickTools/ScreenshotOutputSupport.swift
         Sources/Vorssaint/Services/QuickTools/RecentCaptureStore.swift
         Sources/Vorssaint/Services/QuickTools/ScreenshotSharingSupport.swift
         Sources/Vorssaint/Services/QuickTools/ScreenshotPinSupport.swift
