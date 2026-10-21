@@ -437,6 +437,64 @@ enum ClipboardFeatureTests {
         suite.expect(searchCache.foldCount == initialFoldCount,
                      "keystrokes reuse folded entries without refolding a single one")
 
+        // Groups: a stored list that cannot wedge the shelf, and membership
+        // that travels with the entry and ends with its pin.
+        let work = ClipboardPinboard(name: "  Work  ", tint: .green)
+        let stored = ClipboardPinboard.encodedList([work, work,
+                                                    ClipboardPinboard(name: "   ", tint: .red)])
+        let groups = ClipboardPinboard.decodedList(stored)
+        suite.expect(groups.count == 1 && groups.first?.name == "Work" && groups.first?.tint == .green,
+               "stored groups drop repeats and nameless entries and trim their names")
+        suite.expect(ClipboardPinboard.decodedList(#"[{"id":"\#(work.id.uuidString)","name":"A","tint":"chartreuse"}]"#)
+                        .first?.tint == .blue
+                && ClipboardPinboard.decodedList("junk").isEmpty
+                && ClipboardPinboard.decodedList(nil).isEmpty,
+               "an unknown color reads as blue and a broken list as no groups")
+        let many = (0..<40).map { ClipboardPinboard(name: "G\($0)", tint: .gray) }
+        suite.expect(ClipboardPinboard.decodedList(ClipboardPinboard.encodedList(many)).count == ClipboardPinboard.limit
+                && ClipboardPinboard.sanitizedName(String(repeating: "x", count: 90))?.count
+                    == ClipboardPinboard.nameLimit,
+               "groups and their names stay within their limits")
+        suite.expect(ClipboardPinboard.nextTint(after: []) != ClipboardPinboard.nextTint(after: [work]),
+               "a new group takes the next color")
+        var filed = ClipboardHistoryEntry(text: "Filed", pinnedAt: Date())
+        filed.pinboardID = work.id
+        let reread = (try? JSONEncoder().encode(filed)).flatMap {
+            try? JSONDecoder().decode(ClipboardHistoryEntry.self, from: $0)
+        }
+        suite.expect(reread?.pinboardID == work.id,
+               "an entry keeps its group through the saved history")
+        suite.expect(ClipboardHistoryEditing.unpinned(filed).pinboardID == nil,
+               "unpinning an entry takes it out of its group")
+        let legacy = #"{"id":"\#(UUID().uuidString)","text":"old","copiedAt":0}"#
+        suite.expect((try? JSONDecoder().decode(ClipboardHistoryEntry.self,
+                                                from: Data(legacy.utf8)))?.pinboardID == nil,
+               "a history written before groups still decodes")
+        suite.expect(SettingsBackupSupport.exportKeys().contains(DefaultsKey.clipboardPinboards),
+               "the group list travels with a settings backup")
+        // The shelf's tabs turn with Tab and Shift-Tab, and with Command and a
+        // side arrow while nothing is typed; the list has no tabs.
+        func tabStep(_ key: Int, _ modifiers: NSEvent.ModifierFlags, layout: ClipboardHistoryLayout = .cards,
+                     query: Bool = false) -> Int? {
+            ClipboardHistoryNavigation.pinboardStep(keyCode: UInt16(key), modifiers: modifiers,
+                                                    layout: layout, queryIsEmpty: !query)
+        }
+        suite.expect(tabStep(kVK_Tab, []) == 1 && tabStep(kVK_Tab, [.shift]) == -1
+                && tabStep(kVK_RightArrow, [.command]) == 1 && tabStep(kVK_LeftArrow, [.command]) == -1,
+               "Tab, Shift-Tab and Command-arrows turn the shelf's tabs")
+        suite.expect(tabStep(kVK_LeftArrow, [.command], query: true) == nil
+                && tabStep(kVK_RightArrow, []) == nil
+                && tabStep(kVK_Tab, [], layout: .list) == nil,
+               "a typed search keeps Command-arrows for its caret, plain arrows walk cards, the list has no tabs")
+        // What the user gave an entry is theirs, so a copy taken again keeps it.
+        var named = ClipboardHistoryEntry(text: "Named", pinnedAt: Date())
+        named.pinboardID = UUID()
+        let recopied = ClipboardHistoryEditing.keepingUserChoices(
+            of: named, in: ClipboardHistoryEntry(id: named.id, text: "Named", pinnedAt: named.pinnedAt))
+        suite.expect(recopied.pinboardID == named.pinboardID, "a copy taken again keeps its group")
+        suite.expect(ClipboardHistoryEditing.keepingUserChoices(
+                        of: named, in: ClipboardHistoryEntry(id: named.id, text: "Named")).pinboardID == nil,
+               "only a pinned entry stays in a group")
         // A card shows a link only for an entry that is one web address.
         suite.expect(ClipboardHistoryEntry(text: "  https://example.com/home  ").linkURL?.host == "example.com"
                 && ClipboardHistoryEntry(text: "http://example.com/a?b=c").linkURL != nil,
@@ -993,6 +1051,14 @@ enum ClipboardFeatureTests {
                             .allSatisfy { !$0.isEmpty }
                    && String(format: clipboardStrings.cardCharacterCountFormat, 42).contains("42"),
                    "\(language.rawValue) clipboard card kinds and character count are localized")
+            suite.expect([clipboardStrings.pinboardAll, clipboardStrings.pinboardNew,
+                          clipboardStrings.pinboardNameLabel, clipboardStrings.pinboardCreate,
+                          clipboardStrings.rename, clipboardStrings.pinboardDelete,
+                          clipboardStrings.pinboardColor, clipboardStrings.pinboardAddTo,
+                          clipboardStrings.pinboardRemoveFrom, clipboardStrings.pinboardEmpty]
+                            .allSatisfy { !$0.isEmpty }
+                   && String(format: clipboardStrings.pinboardDefaultNameFormat, 3).contains("3"),
+                   "\(language.rawValue) clipboard groups are localized")
             let layoutStrings = FeatureStrings.windowLayout(language)
             suite.expect(!layoutStrings.sixths.isEmpty
                    && !layoutStrings.topLeftSixth.isEmpty
@@ -1695,6 +1761,8 @@ enum ClipboardPreviewContract {
         func trimToLimit() {}
         func save() {}
         var quickQuery = ""
+        var quickPinboardID: UUID?
+        var pinboardFilterCache: (pinboard: UUID, query: String, stamp: Int, result: [ClipboardHistoryEntry])?
         var quickSelectionID: UUID?
         var quickSelectionIsVisible = false
         var quickBatchEntryIDs: Set<UUID> = []

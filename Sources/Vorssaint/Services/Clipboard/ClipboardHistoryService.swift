@@ -69,6 +69,17 @@ final class ClipboardHistoryService: ObservableObject {
     /// Read again on every opening, so the window's frame and its content
     /// always agree, even if the setting changes while it is open.
     @Published private(set) var quickLayout = ClipboardHistoryLayout.current()
+    /// Named groups of pinned entries the shelf offers beside the whole
+    /// history.
+    @Published private(set) var pinboards = ClipboardPinboard.decodedList(
+        UserDefaults.standard.string(forKey: DefaultsKey.clipboardPinboards))
+    /// The group the window shows, or nil for the whole history. Every
+    /// opening starts on the whole history.
+    @Published var quickPinboardID: UUID? {
+        didSet {
+            if quickPinboardID != oldValue { resetQuickSelection() }
+        }
+    }
     /// ⌘ held over the shelf: its cards show their ⌘1 to ⌘9.
     @Published private(set) var quickCommandHeld = false
 
@@ -415,7 +426,81 @@ final class ClipboardHistoryService: ObservableObject {
     }
 
     var filteredQuickEntries: [ClipboardHistoryEntry] {
-        filteredEntries(matching: quickQuery)
+        let matches = filteredEntries(matching: quickQuery)
+        guard let quickPinboardID else { return matches }
+        // Asked for many times per render, like the search it narrows.
+        if let cache = pinboardFilterCache, cache.pinboard == quickPinboardID,
+           cache.query == quickQuery, cache.stamp == entriesStamp {
+            return cache.result
+        }
+        let result = matches.filter { $0.pinboardID == quickPinboardID }
+        pinboardFilterCache = (quickPinboardID, quickQuery, entriesStamp, result)
+        return result
+    }
+
+    private var pinboardFilterCache: (pinboard: UUID, query: String, stamp: Int, result: [ClipboardHistoryEntry])?
+
+    // MARK: - Groups
+
+    /// Adds a group and returns it, or nil with no name or no room left.
+    @discardableResult
+    func createPinboard(named name: String, tint: ClipboardPinboard.Tint? = nil) -> ClipboardPinboard? {
+        guard pinboards.count < ClipboardPinboard.limit,
+              let name = ClipboardPinboard.sanitizedName(name) else { return nil }
+        let board = ClipboardPinboard(name: name, tint: tint ?? ClipboardPinboard.nextTint(after: pinboards))
+        pinboards.append(board)
+        savePinboards()
+        return board
+    }
+
+    func renamePinboard(_ id: UUID, to name: String) {
+        guard let index = pinboards.firstIndex(where: { $0.id == id }),
+              let name = ClipboardPinboard.sanitizedName(name) else { return }
+        pinboards[index].name = name
+        savePinboards()
+    }
+
+    func recolorPinboard(_ id: UUID, to tint: ClipboardPinboard.Tint) {
+        guard let index = pinboards.firstIndex(where: { $0.id == id }) else { return }
+        pinboards[index].tint = tint
+        savePinboards()
+    }
+
+    /// The group goes; its entries stay pinned, only no longer filed.
+    func deletePinboard(_ id: UUID) {
+        pinboards.removeAll { $0.id == id }
+        if quickPinboardID == id { quickPinboardID = nil }
+        var changed = false
+        for index in entries.indices where entries[index].pinboardID == id {
+            entries[index].pinboardID = nil
+            changed = true
+        }
+        savePinboards()
+        if changed { save() }
+    }
+
+    /// Files an entry under a group, pinning it first so the history's
+    /// limits keep it, or takes it out of its group with nil. A pin the
+    /// history refuses (it would not fit) leaves the entry unfiled.
+    func file(_ entry: ClipboardHistoryEntry, in pinboardID: UUID?) {
+        if let pinboardID {
+            guard pinboards.contains(where: { $0.id == pinboardID }) else { return }
+            if entries.first(where: { $0.id == entry.id })?.isPinned == false { togglePin(entry) }
+        }
+        guard let index = entries.firstIndex(where: { $0.id == entry.id }),
+              entries[index].isPinned || pinboardID == nil,
+              entries[index].pinboardID != pinboardID else { return }
+        entries[index].pinboardID = pinboardID
+        save()
+    }
+
+    func pinboard(for entry: ClipboardHistoryEntry) -> ClipboardPinboard? {
+        guard let id = entry.pinboardID else { return nil }
+        return pinboards.first { $0.id == id }
+    }
+
+    private func savePinboards() {
+        UserDefaults.standard.set(ClipboardPinboard.encodedList(pinboards), forKey: DefaultsKey.clipboardPinboards)
     }
 
     var selectedQuickEntryID: UUID? {
@@ -856,15 +941,17 @@ final class ClipboardHistoryService: ObservableObject {
         let hash = Self.sha256Hex(image.data)
         if let existing = entries.first(where: { $0.kind == .image && $0.imageHash == hash }) {
             entries.removeAll { $0.id == existing.id }
-            insertPromoted(ClipboardHistoryEntry(id: existing.id,
-                                                 text: "",
-                                                 copiedAt: Date(),
-                                                 pinnedAt: existing.pinnedAt,
-                                                 kind: .image,
-                                                 imageFile: existing.imageFile,
-                                                 imageHash: hash,
-                                                 imageWidth: existing.imageWidth,
-                                                 imageHeight: existing.imageHeight),
+            insertPromoted(ClipboardHistoryEditing.keepingUserChoices(
+                                of: existing,
+                                in: ClipboardHistoryEntry(id: existing.id,
+                                                          text: "",
+                                                          copiedAt: Date(),
+                                                          pinnedAt: existing.pinnedAt,
+                                                          kind: .image,
+                                                          imageFile: existing.imageFile,
+                                                          imageHash: hash,
+                                                          imageWidth: existing.imageWidth,
+                                                          imageHeight: existing.imageHeight)),
                            source: keepsSource ? existing.sourceBundleID : source)
         } else {
             guard let name = ClipboardImageStore.store(image.data) else { return }
@@ -884,12 +971,14 @@ final class ClipboardHistoryService: ObservableObject {
         let existing = entries.first(where: { $0.kind == .files && $0.filePaths == paths })
         entries.removeAll { $0.kind == .files && $0.filePaths == paths }
         if let existing {
-            insertPromoted(ClipboardHistoryEntry(id: existing.id,
-                                                 text: "",
-                                                 copiedAt: Date(),
-                                                 pinnedAt: existing.pinnedAt,
-                                                 kind: .files,
-                                                 filePaths: paths),
+            insertPromoted(ClipboardHistoryEditing.keepingUserChoices(
+                                of: existing,
+                                in: ClipboardHistoryEntry(id: existing.id,
+                                                          text: "",
+                                                          copiedAt: Date(),
+                                                          pinnedAt: existing.pinnedAt,
+                                                          kind: .files,
+                                                          filePaths: paths)),
                            source: keepsSource ? existing.sourceBundleID : source)
         } else {
             insertPromoted(ClipboardHistoryEntry(text: "", kind: .files, filePaths: paths), source: source)
@@ -935,10 +1024,12 @@ final class ClipboardHistoryService: ObservableObject {
         let existing = entries.first(where: { $0.kind == .text && $0.text == text })
         entries.removeAll { $0.kind == .text && $0.text == text }
         if let existing {
-            insertPromoted(ClipboardHistoryEntry(id: existing.id,
-                                                 text: text,
-                                                 copiedAt: Date(),
-                                                 pinnedAt: existing.pinnedAt),
+            insertPromoted(ClipboardHistoryEditing.keepingUserChoices(
+                                of: existing,
+                                in: ClipboardHistoryEntry(id: existing.id,
+                                                          text: text,
+                                                          copiedAt: Date(),
+                                                          pinnedAt: existing.pinnedAt)),
                            source: keepsSource ? existing.sourceBundleID : source)
         } else {
             insertPromoted(ClipboardHistoryEntry(text: text), source: source)
@@ -1238,6 +1329,8 @@ final class ClipboardHistoryService: ObservableObject {
         refreshQuickLayout()
         quickWindowPresentationID = UUID()
         quickQuery = ""
+        quickPinboardID = nil
+        pinboards = ClipboardPinboard.decodedList(UserDefaults.standard.string(forKey: DefaultsKey.clipboardPinboards))
         clearQuickBatchSelection()
         resetQuickSelection()
         position(panel)
@@ -1597,6 +1690,12 @@ final class ClipboardHistoryService: ObservableObject {
                 self.removeSelectedQuickEntries()
                 return nil
             }
+            if let step = ClipboardHistoryNavigation.pinboardStep(
+                keyCode: event.keyCode, modifiers: modifiers, layout: self.quickLayout,
+                queryIsEmpty: self.quickQuery.isEmpty) {
+                self.cyclePinboard(step)
+                return nil
+            }
             if let step = ClipboardHistoryNavigation.step(keyCode: event.keyCode, modifiers: modifiers,
                                                           key: key, layout: self.quickLayout) {
                 self.moveQuickSelection(step)
@@ -1703,6 +1802,13 @@ final class ClipboardHistoryService: ObservableObject {
     func previewQuickEntry(_ entry: ClipboardHistoryEntry) {
         selectQuickEntry(entry)
         setQuickPreviewPresented(true)
+    }
+
+    /// Steps through the whole history and then each group, wrapping round.
+    func cyclePinboard(_ step: Int) {
+        let tabs: [UUID?] = [nil] + pinboards.map(\.id)
+        let current = tabs.firstIndex(of: quickPinboardID) ?? 0
+        quickPinboardID = tabs[(current + step % tabs.count + tabs.count) % tabs.count]
     }
 
     func openClipboardSettings() {
