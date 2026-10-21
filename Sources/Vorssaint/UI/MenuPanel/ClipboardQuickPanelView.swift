@@ -659,6 +659,7 @@ private struct QuickPreviewPane: View {
 private struct QuickEntryView: View, Equatable {
     static let cardSize = CGSize(width: 236, height: 236)
     private static let cardCornerRadius: CGFloat = 13
+    private static let cardHeaderHeight: CGFloat = 48
     let layout: ClipboardHistoryLayout
     let entry: ClipboardHistoryEntry
     /// The entry's group, passed in so a renamed or recolored group redraws it.
@@ -814,8 +815,10 @@ private struct QuickEntryView: View, Equatable {
         let marked = isBatchSelected || isSelected
         return VStack(spacing: 0) {
             cardHeader
+            // A fixed box: however much the content asks for, the header and
+            // the footer keep their places.
             cardBody
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .frame(width: Self.cardSize.width, height: bodyHeight, alignment: .topLeading)
                 .clipped()
             cardFooter
         }
@@ -873,7 +876,7 @@ private struct QuickEntryView: View, Equatable {
         .foregroundStyle(.white)
         .padding(.leading, 11)
         .padding(.trailing, 2)
-        .frame(height: 48)
+        .frame(height: Self.cardHeaderHeight)
         .background(headerColor)
     }
 
@@ -1083,8 +1086,13 @@ private struct QuickEntryView: View, Equatable {
         .font(.system(size: 10.5))
         .foregroundStyle(.secondary)
         .padding(.horizontal, 10)
-        .frame(height: entry.kind == .files ? 34 : 26)
+        .frame(height: cardFooterHeight)
     }
+
+    /// Two lines for a file's folder, one for anything else.
+    private var cardFooterHeight: CGFloat { entry.kind == .files ? 34 : 26 }
+
+    private var bodyHeight: CGFloat { Self.cardSize.height - Self.cardHeaderHeight - cardFooterHeight }
 
     private var cardDetail: String {
         switch entry.kind {
@@ -1570,10 +1578,16 @@ private struct LinkCardBody: View {
         let preview = previews.previews[url]
         VStack(alignment: .leading, spacing: 5) {
             if let image = preview?.image {
-                Image(nsImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
+                // The picture fills the room left above the title. As an
+                // overlay it cannot ask for more room than that, whatever
+                // its shape.
+                Color.clear
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .overlay {
+                        Image(nsImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    }
                     .clipped()
             } else {
                 ZStack {
