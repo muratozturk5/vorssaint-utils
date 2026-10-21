@@ -165,7 +165,9 @@ struct ClipboardQuickPanelView: View {
                 }
             }
             .fixedSize()
+            // The sync status takes the free left end, the menu the right.
             HStack {
+                ClipboardSyncStatusView()
                 Spacer(minLength: 0)
                 shelfMenu
             }
