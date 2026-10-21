@@ -448,6 +448,7 @@ if (( TEST )); then
         Sources/Vorssaint/Services/Clipboard/ClipboardHistorySupport.swift
         Sources/Vorssaint/Services/Clipboard/ClipboardHistorySyncSupport.swift
         Sources/Vorssaint/Services/Clipboard/ClipboardHistorySyncFolder.swift
+        Sources/Vorssaint/Services/Clipboard/ClipboardHistorySyncStatus.swift
         Sources/Vorssaint/Core/ClipboardSyncStrings.swift
         Sources/Vorssaint/Core/ColorValue.swift
         Sources/Vorssaint/Services/Clipboard/ClipboardAutoClearSupport.swift

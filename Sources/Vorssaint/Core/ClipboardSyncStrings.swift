@@ -19,6 +19,15 @@ struct ClipboardSyncStrings {
     let unreachable: String
     let syncedFormat: String
     let otherMacsFormat: String
+    /// The history window's status line.
+    let statusLabel: String
+    let statusSyncedFormat: String
+    let statusJustNow: String
+    let statusSyncing: String
+    let statusChecking: String
+    let statusNoICloudDrive: String
+    let statusUnreachable: String
+    let statusHelp: String
 }
 
 extension FeatureStrings {
@@ -57,7 +66,15 @@ extension ClipboardSyncStrings {
         noICloudDrive: "iCloud Drive is off on this Mac. Turn it on in System Settings to sync.",
         unreachable: "Vorssaint can’t reach its folder in iCloud Drive. If macOS asked, allow access to iCloud Drive.",
         syncedFormat: "Last synced at %@",
-        otherMacsFormat: "Other Macs: %d"
+        otherMacsFormat: "Other Macs: %d",
+        statusLabel: "iCloud sync",
+        statusSyncedFormat: "Synced %@",
+        statusJustNow: "Synced just now",
+        statusSyncing: "Syncing…",
+        statusChecking: "Checking…",
+        statusNoICloudDrive: "iCloud Drive is off",
+        statusUnreachable: "Can’t reach iCloud Drive",
+        statusHelp: "Syncs a few seconds after each change on this Mac, when another Mac’s copy arrives, and at least once a minute; iCloud Drive adds its own delay. Click to sync now."
     )
 
     static let ptBR = ClipboardSyncStrings(
@@ -73,7 +90,15 @@ extension ClipboardSyncStrings {
         noICloudDrive: "O iCloud Drive está desativado neste Mac. Ative-o nos Ajustes do Sistema para sincronizar.",
         unreachable: "O Vorssaint não consegue acessar a pasta dele no iCloud Drive. Se o macOS perguntar, permita o acesso ao iCloud Drive.",
         syncedFormat: "Última sincronização às %@",
-        otherMacsFormat: "Outros Macs: %d"
+        otherMacsFormat: "Outros Macs: %d",
+        statusLabel: "Sincronização do iCloud",
+        statusSyncedFormat: "Sincronizado %@",
+        statusJustNow: "Sincronizado agora mesmo",
+        statusSyncing: "Sincronizando…",
+        statusChecking: "Verificando…",
+        statusNoICloudDrive: "O iCloud Drive está desativado",
+        statusUnreachable: "Não foi possível acessar o iCloud Drive",
+        statusHelp: "Sincroniza alguns segundos após cada alteração neste Mac, quando chega a cópia de outro Mac e pelo menos uma vez por minuto; o iCloud Drive acrescenta o próprio atraso. Clique para sincronizar agora."
     )
 
     static let tr = ClipboardSyncStrings(
@@ -89,7 +114,15 @@ extension ClipboardSyncStrings {
         noICloudDrive: "Bu Mac’te iCloud Drive kapalı. Eşzamanlamak için Sistem Ayarları’ndan açın.",
         unreachable: "Vorssaint, iCloud Drive’daki klasörüne ulaşamıyor. macOS sorduysa iCloud Drive erişimine izin verin.",
         syncedFormat: "Son eşzamanlama: %@",
-        otherMacsFormat: "Diğer Mac’ler: %d"
+        otherMacsFormat: "Diğer Mac’ler: %d",
+        statusLabel: "iCloud eşzamanlama",
+        statusSyncedFormat: "Eşzamanlandı: %@",
+        statusJustNow: "Az önce eşzamanlandı",
+        statusSyncing: "Eşzamanlanıyor…",
+        statusChecking: "Denetleniyor…",
+        statusNoICloudDrive: "iCloud Drive kapalı",
+        statusUnreachable: "iCloud Drive’a ulaşılamıyor",
+        statusHelp: "Bu Mac’teki her değişiklikten birkaç saniye sonra, başka bir Mac’in kopyası geldiğinde ve en az dakikada bir eşzamanlar; iCloud Drive da kendi gecikmesini ekler. Hemen eşzamanlamak için tıklayın."
     )
 
     static let ru = ClipboardSyncStrings(
@@ -105,7 +138,15 @@ extension ClipboardSyncStrings {
         noICloudDrive: "iCloud Drive выключен на этом Mac. Включите его в Системных настройках, чтобы синхронизировать.",
         unreachable: "Vorssaint не может открыть свою папку в iCloud Drive. Если macOS спросит, разрешите доступ к iCloud Drive.",
         syncedFormat: "Последняя синхронизация: %@",
-        otherMacsFormat: "Других Mac: %d"
+        otherMacsFormat: "Других Mac: %d",
+        statusLabel: "Синхронизация iCloud",
+        statusSyncedFormat: "Синхронизировано %@",
+        statusJustNow: "Синхронизировано только что",
+        statusSyncing: "Синхронизация…",
+        statusChecking: "Проверка…",
+        statusNoICloudDrive: "iCloud Drive выключен",
+        statusUnreachable: "Нет доступа к iCloud Drive",
+        statusHelp: "Синхронизирует через несколько секунд после каждого изменения на этом Mac, когда приходит копия с другого Mac, и не реже раза в минуту; iCloud Drive добавляет свою задержку. Нажмите, чтобы синхронизировать сейчас."
     )
 
     static let es = ClipboardSyncStrings(
@@ -121,7 +162,15 @@ extension ClipboardSyncStrings {
         noICloudDrive: "iCloud Drive está desactivado en este Mac. Actívalo en Ajustes del Sistema para sincronizar.",
         unreachable: "Vorssaint no puede acceder a su carpeta en iCloud Drive. Si macOS lo pide, permite el acceso a iCloud Drive.",
         syncedFormat: "Última sincronización a las %@",
-        otherMacsFormat: "Otros Mac: %d"
+        otherMacsFormat: "Otros Mac: %d",
+        statusLabel: "Sincronización con iCloud",
+        statusSyncedFormat: "Sincronizado %@",
+        statusJustNow: "Sincronizado ahora mismo",
+        statusSyncing: "Sincronizando…",
+        statusChecking: "Comprobando…",
+        statusNoICloudDrive: "iCloud Drive está desactivado",
+        statusUnreachable: "No se puede acceder a iCloud Drive",
+        statusHelp: "Sincroniza unos segundos después de cada cambio en este Mac, cuando llega la copia de otro Mac y al menos una vez por minuto; iCloud Drive añade su propio retraso. Haz clic para sincronizar ahora."
     )
 
     static let sk = ClipboardSyncStrings(
@@ -137,7 +186,15 @@ extension ClipboardSyncStrings {
         noICloudDrive: "iCloud Drive je na tomto Macu vypnutý. Na synchronizáciu ho zapnite v Systémových nastaveniach.",
         unreachable: "Vorssaint sa nedostane k svojmu priečinku v iCloud Drive. Ak sa macOS opýta, povoľte prístup k iCloud Drive.",
         syncedFormat: "Naposledy synchronizované o %@",
-        otherMacsFormat: "Ďalšie Macy: %d"
+        otherMacsFormat: "Ďalšie Macy: %d",
+        statusLabel: "Synchronizácia cez iCloud",
+        statusSyncedFormat: "Synchronizované %@",
+        statusJustNow: "Synchronizované práve teraz",
+        statusSyncing: "Synchronizuje sa…",
+        statusChecking: "Kontroluje sa…",
+        statusNoICloudDrive: "iCloud Drive je vypnutý",
+        statusUnreachable: "iCloud Drive nie je dostupný",
+        statusHelp: "Synchronizuje pár sekúnd po každej zmene na tomto Macu, keď príde kópia z iného Macu, a aspoň raz za minútu; iCloud Drive pridáva vlastné oneskorenie. Kliknutím synchronizujete hneď."
     )
 
     static let de = ClipboardSyncStrings(
@@ -153,7 +210,15 @@ extension ClipboardSyncStrings {
         noICloudDrive: "iCloud Drive ist auf diesem Mac aus. Schalte es in den Systemeinstellungen ein, um zu synchronisieren.",
         unreachable: "Vorssaint erreicht seinen Ordner in iCloud Drive nicht. Falls macOS fragt, erlaube den Zugriff auf iCloud Drive.",
         syncedFormat: "Zuletzt synchronisiert um %@",
-        otherMacsFormat: "Andere Macs: %d"
+        otherMacsFormat: "Andere Macs: %d",
+        statusLabel: "iCloud-Synchronisierung",
+        statusSyncedFormat: "Synchronisiert %@",
+        statusJustNow: "Gerade synchronisiert",
+        statusSyncing: "Wird synchronisiert…",
+        statusChecking: "Wird geprüft…",
+        statusNoICloudDrive: "iCloud Drive ist aus",
+        statusUnreachable: "iCloud Drive nicht erreichbar",
+        statusHelp: "Synchronisiert ein paar Sekunden nach jeder Änderung auf diesem Mac, wenn die Kopie eines anderen Macs eintrifft, und mindestens einmal pro Minute; iCloud Drive braucht zusätzlich eigene Zeit. Klicke, um jetzt zu synchronisieren."
     )
 
     static let fr = ClipboardSyncStrings(
@@ -169,7 +234,15 @@ extension ClipboardSyncStrings {
         noICloudDrive: "iCloud Drive est désactivé sur ce Mac. Activez-le dans Réglages Système pour synchroniser.",
         unreachable: "Vorssaint ne peut pas accéder à son dossier dans iCloud Drive. Si macOS le demande, autorisez l’accès à iCloud Drive.",
         syncedFormat: "Dernière synchronisation à %@",
-        otherMacsFormat: "Autres Mac\u{00A0}: %d"
+        otherMacsFormat: "Autres Mac\u{00A0}: %d",
+        statusLabel: "Synchronisation iCloud",
+        statusSyncedFormat: "Synchronisé %@",
+        statusJustNow: "Synchronisé à l’instant",
+        statusSyncing: "Synchronisation…",
+        statusChecking: "Vérification…",
+        statusNoICloudDrive: "iCloud Drive est désactivé",
+        statusUnreachable: "iCloud Drive est injoignable",
+        statusHelp: "Synchronise quelques secondes après chaque modification sur ce Mac, à l’arrivée de la copie d’un autre Mac et au moins une fois par minute. iCloud Drive ajoute son propre délai. Cliquez pour synchroniser maintenant."
     )
 
     static let it = ClipboardSyncStrings(
@@ -185,7 +258,15 @@ extension ClipboardSyncStrings {
         noICloudDrive: "iCloud Drive è disattivato su questo Mac. Attivalo in Impostazioni di Sistema per sincronizzare.",
         unreachable: "Vorssaint non riesce a raggiungere la sua cartella in iCloud Drive. Se macOS lo chiede, consenti l’accesso a iCloud Drive.",
         syncedFormat: "Ultima sincronizzazione alle %@",
-        otherMacsFormat: "Altri Mac: %d"
+        otherMacsFormat: "Altri Mac: %d",
+        statusLabel: "Sincronizzazione iCloud",
+        statusSyncedFormat: "Sincronizzato %@",
+        statusJustNow: "Sincronizzato ora",
+        statusSyncing: "Sincronizzazione…",
+        statusChecking: "Controllo…",
+        statusNoICloudDrive: "iCloud Drive è disattivato",
+        statusUnreachable: "Impossibile raggiungere iCloud Drive",
+        statusHelp: "Sincronizza qualche secondo dopo ogni modifica su questo Mac, quando arriva la copia di un altro Mac e almeno una volta al minuto; iCloud Drive aggiunge il proprio ritardo. Fai clic per sincronizzare ora."
     )
 
     static let ja = ClipboardSyncStrings(
@@ -201,7 +282,15 @@ extension ClipboardSyncStrings {
         noICloudDrive: "このMacではiCloud Driveがオフです。同期するにはシステム設定でオンにしてください。",
         unreachable: "VorssaintがiCloud Drive内のフォルダにアクセスできません。macOSに尋ねられた場合は、iCloud Driveへのアクセスを許可してください。",
         syncedFormat: "最終同期: %@",
-        otherMacsFormat: "ほかのMac: %d台"
+        otherMacsFormat: "ほかのMac: %d台",
+        statusLabel: "iCloud同期",
+        statusSyncedFormat: "%@に同期",
+        statusJustNow: "たった今同期",
+        statusSyncing: "同期中…",
+        statusChecking: "確認中…",
+        statusNoICloudDrive: "iCloud Driveがオフです",
+        statusUnreachable: "iCloud Driveに接続できません",
+        statusHelp: "このMacで変更があってから数秒後、ほかのMacのコピーが届いたとき、そして少なくとも1分に1回同期します。iCloud Drive自体の遅延も加わります。クリックするとすぐに同期します。"
     )
 
     static let ko = ClipboardSyncStrings(
@@ -217,7 +306,15 @@ extension ClipboardSyncStrings {
         noICloudDrive: "이 Mac에서 iCloud Drive가 꺼져 있습니다. 동기화하려면 시스템 설정에서 켜십시오.",
         unreachable: "Vorssaint가 iCloud Drive의 폴더에 접근할 수 없습니다. macOS가 묻는 경우 iCloud Drive 접근을 허용하십시오.",
         syncedFormat: "마지막 동기화: %@",
-        otherMacsFormat: "다른 Mac: %d대"
+        otherMacsFormat: "다른 Mac: %d대",
+        statusLabel: "iCloud 동기화",
+        statusSyncedFormat: "%@ 동기화됨",
+        statusJustNow: "방금 동기화됨",
+        statusSyncing: "동기화 중…",
+        statusChecking: "확인 중…",
+        statusNoICloudDrive: "iCloud Drive가 꺼져 있음",
+        statusUnreachable: "iCloud Drive에 연결할 수 없음",
+        statusHelp: "이 Mac에서 변경될 때마다 몇 초 후, 다른 Mac의 사본이 도착할 때, 그리고 최소 1분에 한 번 동기화합니다. iCloud Drive 자체의 지연도 더해집니다. 지금 동기화하려면 클릭하십시오."
     )
 
     static let zhHans = ClipboardSyncStrings(
@@ -233,7 +330,15 @@ extension ClipboardSyncStrings {
         noICloudDrive: "这台 Mac 上的 iCloud 云盘已关闭。请在系统设置中打开它以进行同步。",
         unreachable: "Vorssaint 无法访问它在 iCloud 云盘中的文件夹。如果 macOS 询问，请允许访问 iCloud 云盘。",
         syncedFormat: "上次同步：%@",
-        otherMacsFormat: "其他 Mac：%d 台"
+        otherMacsFormat: "其他 Mac：%d 台",
+        statusLabel: "iCloud 同步",
+        statusSyncedFormat: "%@同步",
+        statusJustNow: "刚刚同步",
+        statusSyncing: "正在同步…",
+        statusChecking: "正在检查…",
+        statusNoICloudDrive: "iCloud 云盘已关闭",
+        statusUnreachable: "无法访问 iCloud 云盘",
+        statusHelp: "在这台 Mac 上每次更改后几秒、其他 Mac 的副本到达时，以及至少每分钟同步一次；iCloud 云盘本身也会有延迟。点按可立即同步。"
     )
 
     static let zhTW = ClipboardSyncStrings(
@@ -249,7 +354,15 @@ extension ClipboardSyncStrings {
         noICloudDrive: "這台 Mac 上的 iCloud 雲碟已關閉。請在系統設定中開啟以進行同步。",
         unreachable: "Vorssaint 無法取用它在 iCloud 雲碟中的檔案夾。如果 macOS 詢問，請允許取用 iCloud 雲碟。",
         syncedFormat: "上次同步：%@",
-        otherMacsFormat: "其他 Mac：%d 台"
+        otherMacsFormat: "其他 Mac：%d 台",
+        statusLabel: "iCloud 同步",
+        statusSyncedFormat: "%@同步",
+        statusJustNow: "剛剛同步",
+        statusSyncing: "正在同步…",
+        statusChecking: "正在檢查…",
+        statusNoICloudDrive: "iCloud 雲碟已關閉",
+        statusUnreachable: "無法取用 iCloud 雲碟",
+        statusHelp: "在這台 Mac 上每次更改後幾秒、其他 Mac 的副本送達時，以及至少每分鐘同步一次；iCloud 雲碟本身也會有延遲。按一下即可立即同步。"
     )
 
     static let zhHK = ClipboardSyncStrings(
@@ -265,7 +378,15 @@ extension ClipboardSyncStrings {
         noICloudDrive: "這部 Mac 上的 iCloud 雲碟已關閉。請在系統設定中開啟以進行同步。",
         unreachable: "Vorssaint 無法取用它在 iCloud 雲碟中的檔案夾。如果 macOS 詢問，請允許取用 iCloud 雲碟。",
         syncedFormat: "上次同步：%@",
-        otherMacsFormat: "其他 Mac：%d 部"
+        otherMacsFormat: "其他 Mac：%d 部",
+        statusLabel: "iCloud 同步",
+        statusSyncedFormat: "%@同步",
+        statusJustNow: "剛剛同步",
+        statusSyncing: "正在同步…",
+        statusChecking: "正在檢查…",
+        statusNoICloudDrive: "iCloud 雲碟已關閉",
+        statusUnreachable: "無法取用 iCloud 雲碟",
+        statusHelp: "在這部 Mac 上每次更改後幾秒、其他 Mac 的副本送達時，以及至少每分鐘同步一次；iCloud 雲碟本身亦會有延遲。按一下即可立即同步。"
     )
 
     static let uk = ClipboardSyncStrings(
@@ -281,6 +402,14 @@ extension ClipboardSyncStrings {
         noICloudDrive: "iCloud Drive вимкнено на цьому Mac. Увімкніть його в Системних параметрах, щоб синхронізувати.",
         unreachable: "Vorssaint не може відкрити свою папку в iCloud Drive. Якщо macOS запитає, дозвольте доступ до iCloud Drive.",
         syncedFormat: "Остання синхронізація: %@",
-        otherMacsFormat: "Інших Mac: %d"
+        otherMacsFormat: "Інших Mac: %d",
+        statusLabel: "Синхронізація iCloud",
+        statusSyncedFormat: "Синхронізовано %@",
+        statusJustNow: "Синхронізовано щойно",
+        statusSyncing: "Синхронізація…",
+        statusChecking: "Перевірка…",
+        statusNoICloudDrive: "iCloud Drive вимкнено",
+        statusUnreachable: "Немає доступу до iCloud Drive",
+        statusHelp: "Синхронізує через кілька секунд після кожної зміни на цьому Mac, коли надходить копія з іншого Mac, і щонайменше раз на хвилину; iCloud Drive додає власну затримку. Натисніть, щоб синхронізувати зараз."
     )
 }
