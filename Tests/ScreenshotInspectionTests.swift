@@ -50,6 +50,7 @@ enum ScreenshotInspectionTests {
     static func run(_ suite: TestSuite) {
         pixels(suite)
         measuring(suite)
+        colors(suite)
         tools(suite)
         rendering(suite)
         preferencesAndStrings(suite)
@@ -136,6 +137,47 @@ enum ScreenshotInspectionTests {
                      "Shift keeps a hand-drawn ruler flat or upright")
     }
 
+    // MARK: - Colors
+
+    static func colors(_ suite: TestSuite) {
+        suite.expectClose(Inspection.contrastRatio(black, white), 21, "black on white", tol: 0.001)
+        suite.expectClose(Inspection.contrastRatio(RGBA(0x77, 0x77, 0x77), white), 4.478, "#777 on white", tol: 0.01)
+        suite.expectClose(Inspection.contrastRatio(white, RGBA(0x77, 0x77, 0x77)), 4.478,
+                          "the ratio reads the same either way", tol: 0.01)
+        suite.expect(Inspection.ContrastLevel(ratio: 7) == .aaa && Inspection.ContrastLevel(ratio: 4.5) == .aa
+                     && Inspection.ContrastLevel(ratio: 4.49) == .aaLarge && Inspection.ContrastLevel(ratio: 2.9) == .fail,
+                     "the WCAG levels start at 7, 4.5 and 3")
+        suite.expectClose(Inspection.apcaContrast(text: black, background: white), 106.04, "APCA black on white", tol: 0.01)
+        suite.expectClose(Inspection.apcaContrast(text: white, background: black), -107.88, "APCA white on black", tol: 0.01)
+        suite.expectClose(Inspection.apcaContrast(text: RGBA(0x88, 0x88, 0x88), background: white), 63.06,
+                          "APCA #888 on white", tol: 0.01)
+        suite.expect(Inspection.apcaContrast(text: white, background: white) == 0,
+                     "APCA reads no contrast between equal colors")
+        suite.expect(RGBA(10, 171, 255).hex == "#0AABFF", "a color reads as upper case hex")
+
+        let text = Inspection.PixelGrid(width: 3, height: 1, pixels: [white, RGBA(120, 120, 130), RGBA(20, 20, 40)])
+        suite.expect(Inspection.darkest(in: text) == RGBA(20, 20, 40), "the text color is the darkest pixel")
+        let mixed = Inspection.PixelGrid(width: 2, height: 1, pixels: [RGBA(0, 100, 200), RGBA(100, 0, 50)])
+        suite.expect(Inspection.average(of: mixed) == RGBA(50, 50, 125), "the average is the mean color")
+        let clear = Inspection.PixelGrid(width: 2, height: 1, pixels: [RGBA(0, 0, 0, 0), RGBA(90, 90, 90)])
+        suite.expect(Inspection.average(of: clear) == RGBA(90, 90, 90) && Inspection.darkest(in: clear) == RGBA(90, 90, 90),
+                     "transparent pixels hold no color")
+
+        // A word on a page: mostly background, some ink, a few smoothed pixels.
+        var page = Array(repeating: RGBA(250, 250, 250), count: 900)
+        for index in 0..<60 { page[index * 7] = RGBA(30, 30, 30) }
+        page[1] = RGBA(140, 140, 140)
+        page[2] = RGBA(200, 60, 60)
+        let pair = Inspection.dominantPair(in: Inspection.PixelGrid(width: 30, height: 30, pixels: page))
+        suite.expect(pair?.background == RGBA(250, 250, 250) && pair?.foreground == RGBA(30, 30, 30),
+                     "the pair is the page and its ink, never a stray smoothed pixel")
+        let plain = Inspection.PixelGrid(width: 4, height: 4, pixels: Array(repeating: white, count: 16))
+        suite.expect(Inspection.dominantPair(in: plain) == nil, "a single color has no contrast to rate")
+        suite.expect(Inspection.sizeLabel(CGSize(width: 240, height: 96), scale: 2, unit: .points) == "120 × 48 pt"
+                     && Inspection.sizeLabel(CGSize(width: 240, height: 96), scale: 2, unit: .pixels) == "240 × 96 px",
+                     "a selection's size reads with one unit")
+    }
+
     // MARK: - Tools
 
     static func tools(_ suite: TestSuite) {
@@ -197,8 +239,9 @@ enum ScreenshotInspectionTests {
                          "every inspector string is translated (\(language.rawValue))")
             suite.expect(values.allSatisfy { !$0.contains("\u{2014}") && !$0.contains("\u{2013}") && !$0.contains("'") },
                          "inspector strings use no long dashes or straight apostrophes (\(language.rawValue))")
-            suite.expect(strings.measureHint.contains("⌥S") && strings.measureHint.contains("⌥D"),
-                         "the measuring hint names its guide keys (\(language.rawValue))")
+            suite.expect(strings.measureHint.contains("⌥S") && strings.measureHint.contains("⌥D")
+                         && strings.pointerColorHint.contains("⇧Tab"),
+                         "the hints name their keys (\(language.rawValue))")
         }
     }
 }

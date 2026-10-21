@@ -3,9 +3,10 @@
 
 import AppKit
 
-/// What the editor reads off the capture as the pointer moves, such as the
-/// live measurement. An object of its own, so a moving pointer redraws only
-/// these readouts and never the whole canvas.
+/// What the editor reads off the capture as the pointer moves: the color
+/// under it, the live measurement, and the colors and size of the crop
+/// selection. An object of its own, so a moving pointer redraws only these
+/// readouts and never the whole canvas.
 final class ScreenshotEditorInspector: ObservableObject {
     typealias Support = ScreenshotInspectionSupport
 
@@ -13,6 +14,7 @@ final class ScreenshotEditorInspector: ObservableObject {
     @Published var pointer: CGPoint? {
         didSet { refreshPointerReadings() }
     }
+    @Published private(set) var pointerColor: Support.RGBA?
     @Published var liveMode: Support.LiveMode? {
         didSet { refreshLiveSpan() }
     }
@@ -21,9 +23,20 @@ final class ScreenshotEditorInspector: ObservableObject {
         didSet { UserDefaults.standard.set(unit.rawValue, forKey: DefaultsKey.screenshotMeasureUnit) }
     }
 
+    /// The crop selection's size and colors, read in the background.
+    struct SelectionReading: Equatable {
+        let size: CGSize
+        let average: Support.RGBA?
+        let pair: Support.ColorPair?
+    }
+    @Published private(set) var selection: SelectionReading?
+
     private(set) var image: CGImage?
     private(set) var scale: CGFloat = 1
     private var line: (key: LineKey, pixels: [Support.RGBA])?
+    private var selectionGeneration = 0
+    private static let selectionQueue = DispatchQueue(label: "Vorssaint.ScreenshotSelectionReading",
+                                                      qos: .userInitiated)
 
     private struct LineKey: Equatable {
         let image: ObjectIdentifier
@@ -53,6 +66,12 @@ final class ScreenshotEditorInspector: ObservableObject {
     // MARK: Pointer
 
     private func refreshPointerReadings() {
+        if let pointer, let image {
+            let pixel = CGRect(x: pointer.x.rounded(.down), y: pointer.y.rounded(.down), width: 1, height: 1)
+            pointerColor = Support.pixelGrid(of: image, region: pixel)?.pixels.first
+        } else {
+            pointerColor = nil
+        }
         refreshLiveSpan()
     }
 
@@ -85,5 +104,44 @@ final class ScreenshotEditorInspector: ObservableObject {
         guard let grid = Support.pixelGrid(of: image, region: region) else { return nil }
         line = (key, grid.pixels)
         return grid.pixels
+    }
+
+    /// The darkest color around the pointer, which over text is its ink.
+    func textColorNearPointer() -> Support.RGBA? {
+        guard let pointer, let image else { return nil }
+        let side = max(20, 10 * scale)
+        let region = CGRect(x: pointer.x - side / 2, y: pointer.y - side / 2, width: side, height: side)
+        return Support.pixelGrid(of: image, region: region).flatMap(Support.darkest)
+    }
+
+    // MARK: Selection
+
+    /// Reads the crop selection off the main thread. Only the latest answer
+    /// lands, so dragging a grip never shows a reading for an older rectangle.
+    func readSelection(_ rect: CGRect?) {
+        selectionGeneration += 1
+        let generation = selectionGeneration
+        guard let rect, let image, rect.width >= 1, rect.height >= 1 else {
+            selection = nil
+            return
+        }
+        let size = rect.integral.size
+        Self.selectionQueue.async { [weak self] in
+            let grid = Support.pixelGrid(of: image, region: rect, maximumSide: 640)
+            let reading = SelectionReading(size: size,
+                                           average: grid.flatMap(Support.average),
+                                           pair: grid.flatMap(Support.dominantPair))
+            DispatchQueue.main.async { [weak self] in
+                guard let self, self.selectionGeneration == generation else { return }
+                self.selection = reading
+            }
+        }
+    }
+
+    // MARK: Colors
+
+    static func nsColor(_ color: Support.RGBA) -> NSColor {
+        NSColor(srgbRed: CGFloat(color.red) / 255, green: CGFloat(color.green) / 255,
+                blue: CGFloat(color.blue) / 255, alpha: 1)
     }
 }

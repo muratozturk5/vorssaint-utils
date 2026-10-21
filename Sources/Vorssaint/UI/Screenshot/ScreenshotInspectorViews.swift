@@ -3,8 +3,9 @@
 
 import SwiftUI
 
-// The editor's readouts for measuring. Each observes only the inspector, so
-// the pointer moving redraws these small views and leaves the canvas alone.
+// The editor's readouts for measuring and colors. Each observes only the
+// inspector, so the pointer moving redraws these small views and leaves
+// the canvas alone.
 
 /// The measurement or guide that follows the pointer, drawn exactly as a
 /// click would leave it on the capture.
@@ -78,7 +79,7 @@ struct ScreenshotMeasureHint: View {
     }
 }
 
-/// Points or pixels for the ruler (P).
+/// Points or pixels, for the ruler and the selection size alike (P).
 struct ScreenshotMeasureUnitControl: View {
     @ObservedObject var inspector: ScreenshotEditorInspector
     let label: String
@@ -94,5 +95,126 @@ struct ScreenshotMeasureUnitControl: View {
         .fixedSize()
         .screenshotSafeHelp(label + "  (P)")
         .accessibilityLabel(label)
+    }
+}
+
+/// The color under the pointer, in the color picker's copy format, with
+/// the keys that copy it.
+struct ScreenshotPointerColorChip: View {
+    @ObservedObject var inspector: ScreenshotEditorInspector
+    let hint: String
+
+    var body: some View {
+        if let color = inspector.pointerColor, color.alpha > 0 {
+            let swatch = ScreenshotEditorInspector.nsColor(color)
+            HStack(spacing: 6) {
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .fill(Color(nsColor: swatch))
+                    .frame(width: 14, height: 14)
+                    .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .strokeBorder(Color.primary.opacity(0.25), lineWidth: 0.5))
+                Text(ColorSamplerService.shared.formattedValue(swatch) ?? color.hex)
+                    .font(.system(size: 11, weight: .medium).monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize()
+                Text("⇥")
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 9)
+            .padding(.vertical, 6)
+            .background(.regularMaterial, in: Capsule(style: .continuous))
+            .shadow(color: .black.opacity(0.12), radius: 8, y: 2)
+            .screenshotSafeHelp(hint)
+            .accessibilityElement(children: .combine)
+            .accessibilityHint(hint)
+        }
+    }
+}
+
+/// What the crop selection measures and holds: its size, its average color
+/// (C copies it) and the contrast of its text on its background.
+struct ScreenshotSelectionReadout: View {
+    @ObservedObject var inspector: ScreenshotEditorInspector
+    let scale: CGFloat
+    let strings: ScreenshotInspectorStrings
+    let copy: (ScreenshotInspectionSupport.RGBA) -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if let reading = inspector.selection {
+                Text(ScreenshotInspectionSupport.sizeLabel(reading.size, scale: scale, unit: inspector.unit))
+                    .font(.system(size: 11.5, weight: .medium).monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .fixedSize()
+                if let average = reading.average {
+                    Divider().frame(height: 16)
+                    Button {
+                        copy(average)
+                    } label: {
+                        HStack(spacing: 5) {
+                            swatch(average)
+                            Text(average.hex)
+                                .font(.system(size: 11.5, weight: .medium).monospacedDigit())
+                            Text("C")
+                                .font(.system(size: 9.5, weight: .bold, design: .rounded))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                    .fixedSize()
+                    .screenshotSafeHelp(strings.averageColorLabel + "  (C)")
+                    .accessibilityLabel(strings.averageColorLabel)
+                    .accessibilityValue(average.hex)
+                }
+                if let pair = reading.pair {
+                    Divider().frame(height: 16)
+                    contrast(pair)
+                }
+            }
+        }
+    }
+
+    private func contrast(_ pair: ScreenshotInspectionSupport.ColorPair) -> some View {
+        let ratio = ScreenshotInspectionSupport.contrastRatio(pair.foreground, pair.background)
+        let level = ScreenshotInspectionSupport.ContrastLevel(ratio: ratio)
+        let lightness = ScreenshotInspectionSupport.apcaContrast(text: pair.foreground,
+                                                                background: pair.background)
+        let ratioText = String(format: "%.2f:1", locale: ScreenshotInspectionSupport.technicalLocale, ratio)
+        let lightnessText = "Lc " + String(Int(lightness.rounded()))
+        return HStack(spacing: 5) {
+            ZStack(alignment: .bottomTrailing) {
+                swatch(pair.background)
+                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                    .fill(Color(nsColor: ScreenshotEditorInspector.nsColor(pair.foreground)))
+                    .frame(width: 7, height: 7)
+                    .offset(x: -2, y: -2)
+            }
+            Text(ratioText)
+                .font(.system(size: 11.5, weight: .semibold).monospacedDigit())
+            Text(level.label)
+                .font(.system(size: 9.5, weight: .bold, design: .rounded))
+                .padding(.horizontal, 4)
+                .padding(.vertical, 1)
+                .background(level == .fail ? Color.red.opacity(0.28) : Color.green.opacity(0.24),
+                            in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+            Text(lightnessText)
+                .font(.system(size: 11, weight: .medium).monospacedDigit())
+                .foregroundStyle(.secondary)
+        }
+        .fixedSize()
+        .screenshotSafeHelp(strings.contrastHelp)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(strings.contrastLabel)
+        .accessibilityValue("\(ratioText), \(level.label), \(lightnessText)")
+    }
+
+    private func swatch(_ color: ScreenshotInspectionSupport.RGBA) -> some View {
+        RoundedRectangle(cornerRadius: 4, style: .continuous)
+            .fill(Color(nsColor: ScreenshotEditorInspector.nsColor(color)))
+            .frame(width: 16, height: 16)
+            .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .strokeBorder(Color.primary.opacity(0.25), lineWidth: 0.5))
     }
 }

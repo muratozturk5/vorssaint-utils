@@ -4,8 +4,8 @@
 import CoreGraphics
 import Foundation
 
-/// The decisions behind the editor's inspection tools, starting with
-/// measuring the gap between edges. Everything works on plain pixel values in
+/// The decisions behind the editor's inspection tools: measuring the gap
+/// between edges, reading colors and rating contrast. Everything works on plain pixel values in
 /// image pixels with a top-left origin, the annotations' space, so each rule
 /// is testable on a handful of synthetic pixels.
 enum ScreenshotInspectionSupport {
@@ -23,6 +23,10 @@ enum ScreenshotInspectionSupport {
             self.green = green
             self.blue = blue
             self.alpha = alpha
+        }
+
+        var hex: String {
+            String(format: "#%02X%02X%02X", red, green, blue)
         }
     }
 
@@ -186,8 +190,8 @@ enum ScreenshotInspectionSupport {
             : CGPoint(x: start.x, y: end.y)
     }
 
-    /// Lengths read the way design tools print them, with a decimal point
-    /// in every language.
+    /// Lengths and contrast ratios read the way design tools print them,
+    /// with a decimal point in every language.
     static let technicalLocale = Locale(identifier: "en_US_POSIX")
 
     /// "120 pt", "240 px" or "60.5 pt". A 1x capture has nothing to convert,
@@ -200,5 +204,138 @@ enum ScreenshotInspectionSupport {
             ? String(Int(rounded))
             : String(format: "%.1f", locale: technicalLocale, Double(rounded))
         return number + (usesPoints ? " pt" : " px")
+    }
+
+    /// "120 × 48 pt" for a selection, in the same unit as the ruler.
+    static func sizeLabel(_ size: CGSize, scale: CGFloat, unit: MeasureUnit) -> String {
+        let width = measureLabel(lengthPixels: size.width, scale: scale, unit: unit)
+        let height = measureLabel(lengthPixels: size.height, scale: scale, unit: unit)
+        let suffix = String(height.split(separator: " ").last ?? "")
+        let bareWidth = String(width.split(separator: " ").first ?? "")
+        let bareHeight = String(height.split(separator: " ").first ?? "")
+        return "\(bareWidth) × \(bareHeight) \(suffix)"
+    }
+
+    // MARK: - Colors
+
+    /// WCAG relative luminance of an sRGB color.
+    static func relativeLuminance(_ color: RGBA) -> Double {
+        func linear(_ channel: UInt8) -> Double {
+            let value = Double(channel) / 255
+            return value <= 0.04045 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * linear(color.red) + 0.7152 * linear(color.green) + 0.0722 * linear(color.blue)
+    }
+
+    /// The WCAG 2 contrast ratio, from 1 to 21, in either order.
+    static func contrastRatio(_ a: RGBA, _ b: RGBA) -> Double {
+        let first = relativeLuminance(a)
+        let second = relativeLuminance(b)
+        return (max(first, second) + 0.05) / (min(first, second) + 0.05)
+    }
+
+    /// The highest WCAG 2 level text at this ratio meets.
+    enum ContrastLevel: Equatable {
+        case aaa, aa, aaLarge, fail
+
+        init(ratio: Double) {
+            if ratio >= 7 {
+                self = .aaa
+            } else if ratio >= 4.5 {
+                self = .aa
+            } else if ratio >= 3 {
+                self = .aaLarge
+            } else {
+                self = .fail
+            }
+        }
+
+        var label: String {
+            switch self {
+            case .aaa: return "AAA"
+            case .aa: return "AA"
+            case .aaLarge: return "AA18"
+            case .fail: return "✕"
+            }
+        }
+    }
+
+    /// APCA lightness contrast (Lc, version 0.0.98G) of text on a background:
+    /// positive for dark text on a light background, negative the other way.
+    static func apcaContrast(text: RGBA, background: RGBA) -> Double {
+        func screenLuminance(_ color: RGBA) -> Double {
+            let y = 0.2126729 * pow(Double(color.red) / 255, 2.4)
+                + 0.7151522 * pow(Double(color.green) / 255, 2.4)
+                + 0.0721750 * pow(Double(color.blue) / 255, 2.4)
+            // Soft clamp near black, where screens stop showing differences.
+            return y < 0.022 ? y + pow(0.022 - y, 1.414) : y
+        }
+        let textY = screenLuminance(text)
+        let backgroundY = screenLuminance(background)
+        guard abs(backgroundY - textY) >= 0.0005 else { return 0 }
+        if backgroundY > textY {
+            let contrast = (pow(backgroundY, 0.56) - pow(textY, 0.57)) * 1.14
+            return contrast < 0.1 ? 0 : (contrast - 0.027) * 100
+        }
+        let contrast = (pow(backgroundY, 0.65) - pow(textY, 0.62)) * 1.14
+        return contrast > -0.1 ? 0 : (contrast + 0.027) * 100
+    }
+
+    /// The darkest pixel, which over a line of text is the ink rather than
+    /// the smoothing around it.
+    static func darkest(in grid: PixelGrid) -> RGBA? {
+        grid.pixels.filter { $0.alpha > 0 }.min { relativeLuminance($0) < relativeLuminance($1) }
+    }
+
+    /// The mean color, ignoring fully transparent pixels.
+    static func average(of grid: PixelGrid) -> RGBA? {
+        var red = 0, green = 0, blue = 0, count = 0
+        for pixel in grid.pixels where pixel.alpha > 0 {
+            red += Int(pixel.red)
+            green += Int(pixel.green)
+            blue += Int(pixel.blue)
+            count += 1
+        }
+        guard count > 0 else { return nil }
+        func mean(_ total: Int) -> UInt8 { UInt8((total + count / 2) / count) }
+        return RGBA(mean(red), mean(green), mean(blue))
+    }
+
+    /// A selection's two colors that matter for legibility: the background is
+    /// the most common color, and the foreground is the color most unlike it
+    /// that still covers a real part of the area, so the smoothed pixels at a
+    /// glyph's edge never stand in for the text.
+    struct ColorPair: Equatable {
+        let background: RGBA
+        let foreground: RGBA
+    }
+
+    static func dominantPair(in grid: PixelGrid) -> ColorPair? {
+        // Close shades share a bin; each bin answers with its own mean.
+        struct Bin { var count = 0, red = 0, green = 0, blue = 0 }
+        var bins: [Int: Bin] = [:]
+        var total = 0
+        for pixel in grid.pixels where pixel.alpha > 0 {
+            let key = Int(pixel.red >> 3) << 10 | Int(pixel.green >> 3) << 5 | Int(pixel.blue >> 3)
+            var bin = bins[key, default: Bin()]
+            bin.count += 1
+            bin.red += Int(pixel.red)
+            bin.green += Int(pixel.green)
+            bin.blue += Int(pixel.blue)
+            bins[key] = bin
+            total += 1
+        }
+        func color(_ bin: Bin) -> RGBA {
+            RGBA(UInt8(bin.red / bin.count), UInt8(bin.green / bin.count), UInt8(bin.blue / bin.count))
+        }
+        guard let backgroundBin = bins.values.max(by: { $0.count < $1.count }) else { return nil }
+        let background = color(backgroundBin)
+        let minimum = max(2, total / 200)
+        let foreground = bins.values
+            .filter { $0.count >= minimum }
+            .map(color)
+            .max { contrastRatio($0, background) < contrastRatio($1, background) }
+        guard let foreground, distance(foreground, background) > edgeTolerance else { return nil }
+        return ColorPair(background: background, foreground: foreground)
     }
 }

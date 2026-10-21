@@ -1133,6 +1133,7 @@ struct ScreenshotEditorView: View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .center, spacing: 10) {
                 infoChip
+                pointerColorChip
                 Spacer(minLength: 6)
                 contextualBar
                 Spacer(minLength: 6)
@@ -1144,6 +1145,7 @@ struct ScreenshotEditorView: View {
                 contextualBar
                 HStack {
                     infoChip
+                    pointerColorChip
                     Spacer()
                     zoomChip
                 }
@@ -1339,6 +1341,13 @@ struct ScreenshotEditorView: View {
 
     private var cropBar: some View {
         HStack(spacing: 8) {
+            ScreenshotSelectionReadout(inspector: model.inspector, scale: model.scale,
+                                       strings: inspectorStrings) { color in
+                let swatch = ScreenshotEditorInspector.nsColor(color)
+                if let value = ColorSamplerService.shared.copyQuietly(swatch) {
+                    QuickToolHUD.show(icon: "eyedropper", message: value, swatch: swatch)
+                }
+            }
             Button(strings.cancel) {
                 model.tool = .select
             }
@@ -1700,6 +1709,10 @@ struct ScreenshotEditorView: View {
         .padding(.vertical, 6)
         .background(.regularMaterial, in: Capsule(style: .continuous))
         .shadow(color: .black.opacity(0.12), radius: 8, y: 2)
+    }
+
+    private var pointerColorChip: some View {
+        ScreenshotPointerColorChip(inspector: model.inspector, hint: inspectorStrings.pointerColorHint)
     }
 
     private var zoomChip: some View {

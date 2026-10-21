@@ -14,8 +14,8 @@ final class ScreenshotEditorModel: ObservableObject, BackdropEditing {
         didSet { inspector.setImage(baseImage, scale: scale) }
     }
     @Published var annotations: [ScreenshotSupport.Annotation] = []
-    /// Pointer and live measurement readings. Its own object, so a moving
-    /// pointer redraws the readouts and never the whole canvas.
+    /// Pointer, live measurement and selection readings. Its own object, so a
+    /// moving pointer redraws the readouts and never the whole canvas.
     let inspector = ScreenshotEditorInspector()
     /// How dark a spotlight turns everything outside its regions,
     /// remembered between captures like the blur strength.
@@ -166,7 +166,11 @@ final class ScreenshotEditorModel: ObservableObject, BackdropEditing {
                 forKey: DefaultsKey.screenshotWatermarkPresets)
         }
     }
-    @Published var cropDraft: CGRect?
+    @Published var cropDraft: CGRect? {
+        didSet {
+            if cropDraft != oldValue { inspector.readSelection(cropDraft) }
+        }
+    }
     /// Exact image pixel under a crop resize grip. Nil while moving the
     /// whole crop so the loupe appears only when it adds precision.
     @Published private(set) var cropLoupePoint: CGPoint?
@@ -1633,7 +1637,9 @@ final class ScreenshotEditorController: NSObject, NSWindowDelegate {
 
     // MARK: Inspection keys
 
-    /// The measuring keys. Each answers only where it means something.
+    /// The measuring and color keys. Each answers only where it means
+    /// something, so Tab still moves focus when the pointer is off the
+    /// capture and C types nothing while no area is selected.
     private func handleInspectionKey(_ key: Int, shift: Bool, isRepeat: Bool) -> Bool {
         let inspector = model.inspector
         switch key {
@@ -1645,13 +1651,32 @@ final class ScreenshotEditorController: NSObject, NSWindowDelegate {
             guard !isRepeat else { return true }
             toggleLiveMode(.distance(.vertical))
             return true
+        case kVK_Tab:
+            guard inspector.pointer != nil else { return false }
+            copyColor(shift ? inspector.textColorNearPointer() : inspector.pointerColor)
+            return true
+        case kVK_ANSI_C where !shift:
+            guard model.tool == .crop, model.cropDraft != nil else { return false }
+            copyColor(inspector.selection?.average)
+            return true
         case kVK_ANSI_P where !shift:
-            guard inspector.liveMode != nil || model.tool == .ruler else { return false }
+            guard inspector.liveMode != nil || model.tool == .ruler || model.tool == .crop else { return false }
             inspector.unit = inspector.unit.toggled
             return true
         default:
             return false
         }
+    }
+
+    /// Copies a color in the format the color picker uses, with its swatch.
+    private func copyColor(_ color: ScreenshotInspectionSupport.RGBA?) {
+        guard let color else {
+            NSSound.beep()
+            return
+        }
+        let swatch = ScreenshotEditorInspector.nsColor(color)
+        guard let value = ColorSamplerService.shared.copyQuietly(swatch) else { return }
+        QuickToolHUD.show(icon: "eyedropper", message: value, swatch: swatch)
     }
 
     private func toggleLiveMode(_ mode: ScreenshotInspectionSupport.LiveMode) {
