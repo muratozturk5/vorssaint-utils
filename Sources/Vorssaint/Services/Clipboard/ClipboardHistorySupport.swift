@@ -156,6 +156,9 @@ struct ClipboardHistoryEntry: Codable, Equatable, Identifiable {
     /// a history written before it existed still decodes, and an older
     /// version reading this file skips the key.
     var sourceBundleID: String?
+    /// A name the user gave the entry, shown in place of its kind and
+    /// matched by the search.
+    var title: String?
 
     init(id: UUID = UUID(),
          text: String,
@@ -273,19 +276,23 @@ struct ClipboardHistoryEntry: Codable, Equatable, Identifiable {
     /// What the search box can match. Image entries carry the localized label
     /// plus dimensions so typing "image"/"imagem" finds them.
     func searchableText(imageLabel: String) -> String {
+        let content: String
         switch kind {
-        case .text: return text
-        case .image: return "\(imageLabel) png \(imageDimensionsLabel)"
+        case .text: content = text
+        case .image: content = "\(imageLabel) png \(imageDimensionsLabel)"
         case .files:
             let names = fileNames.joined(separator: " ")
             let hasImage = filePaths.contains { ClipboardHistoryImageSupport.isImageFileName($0) }
-            return hasImage ? "\(imageLabel) \(names)" : names
+            content = hasImage ? "\(imageLabel) \(names)" : names
         }
+        guard let title else { return content }
+        return "\(title) \(content)"
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, text, copiedAt, pinnedAt, kind, filePaths, imageFile, imageHash, imageWidth, imageHeight
         case sourceBundleID
+        case title
     }
 
     init(from decoder: Decoder) throws {
@@ -302,6 +309,7 @@ struct ClipboardHistoryEntry: Codable, Equatable, Identifiable {
         imageWidth = try container.decodeIfPresent(Int.self, forKey: .imageWidth)
         imageHeight = try container.decodeIfPresent(Int.self, forKey: .imageHeight)
         sourceBundleID = try container.decodeIfPresent(String.self, forKey: .sourceBundleID)
+        title = try container.decodeIfPresent(String.self, forKey: .title)
     }
 }
 
@@ -334,6 +342,24 @@ enum ClipboardHistoryEditing {
     static func canSave(original: String, draft: String) -> Bool {
         guard let text = storableText(draft) else { return false }
         return text != original
+    }
+
+    /// A copy taken again is rebuilt from what was read, but the name the
+    /// user gave it is theirs and stays with it.
+    static func keepingUserChoices(of existing: ClipboardHistoryEntry,
+                                   in recopied: ClipboardHistoryEntry) -> ClipboardHistoryEntry {
+        var entry = recopied
+        entry.title = existing.title
+        return entry
+    }
+
+    static let titleLimit = 60
+
+    /// A title trimmed and capped, or nil for an empty one, which removes it.
+    static func sanitizedTitle(_ title: String) -> String? {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return String(trimmed.prefix(titleLimit))
     }
 
     /// `retentionDays` drops recent entries copied longer ago than that, even

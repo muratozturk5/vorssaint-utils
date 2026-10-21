@@ -437,6 +437,17 @@ enum ClipboardFeatureTests {
         suite.expect(searchCache.foldCount == initialFoldCount,
                      "keystrokes reuse folded entries without refolding a single one")
 
+        // What the user gave an entry is theirs, so a copy taken again keeps it.
+        var named = ClipboardHistoryEntry(text: "Named", pinnedAt: Date())
+        named.title = "Invoice"
+        let recopied = ClipboardHistoryEditing.keepingUserChoices(
+            of: named, in: ClipboardHistoryEntry(id: named.id, text: "Named", pinnedAt: named.pinnedAt))
+        suite.expect(recopied.title == "Invoice", "a copy taken again keeps its name")
+        suite.expect(ClipboardHistoryEditing.sanitizedTitle("   ") == nil
+                && ClipboardHistoryEditing.sanitizedTitle(String(repeating: "t", count: 90))?.count
+                    == ClipboardHistoryEditing.titleLimit
+                && named.searchableText(imageLabel: "Image").hasPrefix("Invoice "),
+               "a card's name is trimmed, capped, removable and found by the search")
         // A card shows a link only for an entry that is one web address.
         suite.expect(ClipboardHistoryEntry(text: "  https://example.com/home  ").linkURL?.host == "example.com"
                 && ClipboardHistoryEntry(text: "http://example.com/a?b=c").linkURL != nil,
@@ -993,6 +1004,8 @@ enum ClipboardFeatureTests {
                             .allSatisfy { !$0.isEmpty }
                    && String(format: clipboardStrings.cardCharacterCountFormat, 42).contains("42"),
                    "\(language.rawValue) clipboard card kinds and character count are localized")
+            suite.expect(!clipboardStrings.itemTitleLabel.isEmpty && !clipboardStrings.rename.isEmpty,
+                   "\(language.rawValue) clipboard card names are localized")
             let layoutStrings = FeatureStrings.windowLayout(language)
             suite.expect(!layoutStrings.sixths.isEmpty
                    && !layoutStrings.topLeftSixth.isEmpty
