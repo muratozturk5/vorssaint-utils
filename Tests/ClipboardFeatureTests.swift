@@ -993,6 +993,8 @@ enum ClipboardFeatureTests {
                             .allSatisfy { !$0.isEmpty }
                    && String(format: clipboardStrings.cardCharacterCountFormat, 42).contains("42"),
                    "\(language.rawValue) clipboard card kinds and character count are localized")
+            suite.expect(!clipboardStrings.linkPreviewsToggle.isEmpty && !clipboardStrings.linkPreviewsCaption.isEmpty,
+                   "\(language.rawValue) clipboard link previews are localized")
             let layoutStrings = FeatureStrings.windowLayout(language)
             suite.expect(!layoutStrings.sixths.isEmpty
                    && !layoutStrings.topLeftSixth.isEmpty
