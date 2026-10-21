@@ -547,6 +547,7 @@ private struct QuickEntryView: View, Equatable {
     let previewSelection: QuickPreviewSelection
     @State private var isHovered = false
     @State private var previewIsEditingHere = false
+    @State private var renaming = false
     /// The pane follows a row only once the pointer has rested on it: while
     /// rows stream under a still pointer during a scroll, every one of them
     /// would otherwise redraw the pane, and a long entry costs a frame or two
@@ -615,6 +616,12 @@ private struct QuickEntryView: View, Equatable {
             ClipboardEntryPreviewSidebar(text: text, entry: entry, isEditing: $previewIsEditingHere,
                                          onClose: { history.setQuickPreviewPresented(false) })
                 .frame(width: 520, height: 420)
+        }
+        .popover(isPresented: $renaming, arrowEdge: .top) {
+            EntryTitleEditor(text: text, title: entry.title ?? "") { title in
+                history.setTitle(title, for: entry)
+                renaming = false
+            }
         }
         .modifier(EntryClicks(pastesOnDoubleClick: !isRow,
                               onClick: { activate(entry) },
@@ -693,7 +700,7 @@ private struct QuickEntryView: View, Equatable {
     private var cardHeader: some View {
         HStack(alignment: .center, spacing: 7) {
             VStack(alignment: .leading, spacing: 1) {
-                Text(cardKindTitle)
+                Text(entry.title ?? cardKindTitle)
                     .font(.system(size: 13.5, weight: .bold))
                 Text(Self.relativeTime(of: entry.copiedAt, language: language))
                     .font(.system(size: 10.5, weight: .medium))
@@ -1074,6 +1081,12 @@ private struct QuickEntryView: View, Equatable {
         Button(text.previewLabel) {
             history.previewQuickEntry(entry)
         }
+        // A name shows only on a card, so the list does not offer one.
+        if !isRow {
+            Button(text.rename) {
+                renaming = true
+            }
+        }
         Divider()
         Button(entry.isPinned ? text.unpin : text.pin) {
             history.togglePin(entry)
@@ -1263,6 +1276,28 @@ private struct EntryClicks: ViewModifier {
                 onClick()
             }
         }
+    }
+}
+
+/// Names a card; an empty name removes it.
+private struct EntryTitleEditor: View {
+    let text: ClipboardFeatureStrings
+    @State var title: String
+    let onCommit: (String) -> Void
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        VStack(alignment: .trailing, spacing: 10) {
+            TextField(text.itemTitleLabel, text: $title)
+                .textFieldStyle(.roundedBorder)
+                .focused($focused)
+                .onSubmit { onCommit(title) }
+            Button(text.rename.replacingOccurrences(of: "…", with: "")) { onCommit(title) }
+                .keyboardShortcut(.defaultAction)
+        }
+        .padding(14)
+        .frame(width: 260)
+        .onAppear { focused = true }
     }
 }
 

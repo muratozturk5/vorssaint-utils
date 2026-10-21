@@ -418,6 +418,15 @@ final class ClipboardHistoryService: ObservableObject {
         filteredEntries(matching: quickQuery)
     }
 
+    /// Names an entry, or removes its name with an empty title.
+    func setTitle(_ title: String, for entry: ClipboardHistoryEntry) {
+        guard let index = entries.firstIndex(where: { $0.id == entry.id }) else { return }
+        let sanitized = ClipboardHistoryEditing.sanitizedTitle(title)
+        guard entries[index].title != sanitized else { return }
+        entries[index].title = sanitized
+        save()
+    }
+
     var selectedQuickEntryID: UUID? {
         selectedQuickEntry?.id
     }
@@ -856,15 +865,17 @@ final class ClipboardHistoryService: ObservableObject {
         let hash = Self.sha256Hex(image.data)
         if let existing = entries.first(where: { $0.kind == .image && $0.imageHash == hash }) {
             entries.removeAll { $0.id == existing.id }
-            insertPromoted(ClipboardHistoryEntry(id: existing.id,
-                                                 text: "",
-                                                 copiedAt: Date(),
-                                                 pinnedAt: existing.pinnedAt,
-                                                 kind: .image,
-                                                 imageFile: existing.imageFile,
-                                                 imageHash: hash,
-                                                 imageWidth: existing.imageWidth,
-                                                 imageHeight: existing.imageHeight),
+            insertPromoted(ClipboardHistoryEditing.keepingUserChoices(
+                                of: existing,
+                                in: ClipboardHistoryEntry(id: existing.id,
+                                                          text: "",
+                                                          copiedAt: Date(),
+                                                          pinnedAt: existing.pinnedAt,
+                                                          kind: .image,
+                                                          imageFile: existing.imageFile,
+                                                          imageHash: hash,
+                                                          imageWidth: existing.imageWidth,
+                                                          imageHeight: existing.imageHeight)),
                            source: keepsSource ? existing.sourceBundleID : source)
         } else {
             guard let name = ClipboardImageStore.store(image.data) else { return }
@@ -884,12 +895,14 @@ final class ClipboardHistoryService: ObservableObject {
         let existing = entries.first(where: { $0.kind == .files && $0.filePaths == paths })
         entries.removeAll { $0.kind == .files && $0.filePaths == paths }
         if let existing {
-            insertPromoted(ClipboardHistoryEntry(id: existing.id,
-                                                 text: "",
-                                                 copiedAt: Date(),
-                                                 pinnedAt: existing.pinnedAt,
-                                                 kind: .files,
-                                                 filePaths: paths),
+            insertPromoted(ClipboardHistoryEditing.keepingUserChoices(
+                                of: existing,
+                                in: ClipboardHistoryEntry(id: existing.id,
+                                                          text: "",
+                                                          copiedAt: Date(),
+                                                          pinnedAt: existing.pinnedAt,
+                                                          kind: .files,
+                                                          filePaths: paths)),
                            source: keepsSource ? existing.sourceBundleID : source)
         } else {
             insertPromoted(ClipboardHistoryEntry(text: "", kind: .files, filePaths: paths), source: source)
@@ -935,10 +948,12 @@ final class ClipboardHistoryService: ObservableObject {
         let existing = entries.first(where: { $0.kind == .text && $0.text == text })
         entries.removeAll { $0.kind == .text && $0.text == text }
         if let existing {
-            insertPromoted(ClipboardHistoryEntry(id: existing.id,
-                                                 text: text,
-                                                 copiedAt: Date(),
-                                                 pinnedAt: existing.pinnedAt),
+            insertPromoted(ClipboardHistoryEditing.keepingUserChoices(
+                                of: existing,
+                                in: ClipboardHistoryEntry(id: existing.id,
+                                                          text: text,
+                                                          copiedAt: Date(),
+                                                          pinnedAt: existing.pinnedAt)),
                            source: keepsSource ? existing.sourceBundleID : source)
         } else {
             insertPromoted(ClipboardHistoryEntry(text: text), source: source)
