@@ -30,6 +30,7 @@ struct MetricsTests {
             ("pointer-input", {
                 PointerOnDisplayContract.run(suite)
                 PointerInputFeatureTests.run(suite)
+                MouseSpacesGestureTapTests.run(suite)
                 SmoothScrollRoutingTests.run(suite)
                 KeyboardDebounceTapTests.run(suite)
                 PointerDisplayLookupContract.run(suite)
@@ -46,6 +47,7 @@ struct MetricsTests {
             ("window-layout", { WindowLayoutFeatureTests.run(suite) }),
             ("media", { MediaFeatureTests.run(suite) }),
             ("mixer", {
+                MixerRenderContinuityTests.run(suite)
                 MixerNativeDragTests.run(suite)
                 MixerOutputAdjustmentContract.run(suite)
                 MixerHeadphonesDisconnectContract.run(suite)
@@ -158,7 +160,10 @@ struct MetricsTests {
                 StorageFeatureTests.run(suite)
                 ScratchpadStoreContractTests.run(suite)
             }),
-            ("quit-protection", { QuitProtectionHUD.progressChecks(suite) }),
+            ("quit-protection", {
+                QuitProtectionHUD.progressChecks(suite)
+                QuitProtectionRoutingContract.QuitProtectionService.routingChecks(suite)
+            }),
             ("scratchpad", { ScratchpadMarkTests.run { suite.expect($0, $1) } }),
             ("recording", {
                 RecorderPreparationTests.run(suite)
