@@ -1454,6 +1454,7 @@ final class ClipboardHistoryService: ObservableObject {
         }
         shelfSlideGeneration += 1
         shelfIsSlidingOut = false
+        shelfDepartureWork = []
         panel.orderFrontRegardless()
         panel.makeKey()
     }
@@ -1462,6 +1463,25 @@ final class ClipboardHistoryService: ObservableObject {
     /// newer one began leaves the window to the newer one.
     private var shelfSlideGeneration = 0
     private var shelfIsSlidingOut = false
+    /// What waits for the shelf to finish sliding away: until then it keeps
+    /// the keyboard, so a Command-V sent to the app behind would land in the
+    /// shelf instead.
+    private var shelfDepartureWork: [() -> Void] = []
+
+    private func afterShelfLeaves(_ work: @escaping () -> Void) {
+        guard shelfIsSlidingOut else {
+            work()
+            return
+        }
+        shelfDepartureWork.append(work)
+    }
+
+    private func shelfDidLeave() {
+        shelfIsSlidingOut = false
+        let work = shelfDepartureWork
+        shelfDepartureWork = []
+        work.forEach { $0() }
+    }
 
     /// The shelf rises from below the screen's bottom edge and sinks back
     /// there. The window is placed fully off screen at the far end, so the
@@ -1474,6 +1494,9 @@ final class ClipboardHistoryService: ObservableObject {
         let hidden = shown.offsetBy(dx: 0, dy: -(shown.height + 8))
         (panel as? ClipboardShelfPanel)?.allowsFrameBelowScreen = true
         if comingIn {
+            // A shelf coming back takes the keyboard again, so nothing that
+            // waited for it to leave may run any more.
+            shelfDepartureWork = []
             panel.setFrame(hidden, display: false)
             panel.orderFrontRegardless()
             panel.makeKey()
@@ -1488,7 +1511,7 @@ final class ClipboardHistoryService: ObservableObject {
             guard let self, let panel, self.shelfSlideGeneration == generation else { return }
             if !comingIn {
                 panel.orderOut(nil)
-                self.shelfIsSlidingOut = false
+                self.shelfDidLeave()
             }
             (panel as? ClipboardShelfPanel)?.allowsFrameBelowScreen = false
         })
@@ -1508,8 +1531,8 @@ final class ClipboardHistoryService: ObservableObject {
             if !shelfIsSlidingOut { slideShelf(panel, in: false) }
         } else {
             shelfSlideGeneration += 1
-            shelfIsSlidingOut = false
             panel?.orderOut(nil)
+            shelfDidLeave()
         }
         clearQuickBatchSelection()
     }
@@ -1547,8 +1570,10 @@ final class ClipboardHistoryService: ObservableObject {
             }
             return
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
-            Self.postPasteShortcut()
+        afterShelfLeaves {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+                Self.postPasteShortcut()
+            }
         }
     }
 

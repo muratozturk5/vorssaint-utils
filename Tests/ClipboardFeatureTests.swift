@@ -57,6 +57,8 @@ enum ClipboardFeatureTests {
         var events: [String] = []
         var trusted = true
         var promptedForAccessibility = false
+        var shelfIsSlidingOut = false
+        var shelfDepartureWork: [() -> Void] = []
         init() { Self.host = self }
         func AXIsProcessTrusted() -> Bool { trusted }
         static func postPasteShortcut() { host?.events.append("paste") }
@@ -1829,6 +1831,19 @@ enum ClipboardFeatureTests {
             suite.expect(host.events == expected,
                    "quick paste beeps or asks for Accessibility when it cannot paste, found \(host.events)")
         }
+        // The shelf keeps the keyboard while it slides away, so Command-V
+        // waits for it to leave; a shelf that never leaves pastes nothing.
+        let slidingHost = QuickPasteHost()
+        slidingHost.shelfIsSlidingOut = true
+        slidingHost.pasteIntoPreviousApp(QuickPasteHost.App(isTerminated: false))
+        suite.expect(slidingHost.events == ["activate"],
+               "a paste from the shelf waits while it slides away, found \(slidingHost.events)")
+        slidingHost.shelfDidLeave()
+        suite.expect(slidingHost.events == ["activate", "paste"] && !slidingHost.shelfIsSlidingOut,
+               "the paste follows once the shelf has left the screen, found \(slidingHost.events)")
+        slidingHost.shelfDidLeave()
+        suite.expect(slidingHost.events == ["activate", "paste"],
+               "a paste waiting for the shelf runs only once")
         for trusted in [true, false] {
             let host = QuickPasteHost()
             host.trusted = trusted
