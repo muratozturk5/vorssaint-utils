@@ -19,7 +19,7 @@ final class ClipboardLinkPreviewStore: ObservableObject {
     }
 
     @Published private(set) var previews: [URL: Preview] = [:]
-    private var pending: Set<URL> = []
+    private var queue = ClipboardLinkPreviewQueue(capacity: ClipboardLinkPreviewStore.concurrentFetches)
     /// A page that gave nothing is not asked again until the next launch.
     private var failed: Set<URL> = []
     private static let concurrentFetches = 3
@@ -28,18 +28,21 @@ final class ClipboardLinkPreviewStore: ObservableObject {
 
     private init() {}
 
-    /// Starts a fetch when one is allowed and none is known, cached or under
-    /// way. Called from a card's task, never while a view is being built.
+    /// Starts a fetch, or queues it while the others run, when the preview is
+    /// allowed and not yet known, cached or asked for. Called from a card's
+    /// task, never while a view is being built.
     func request(_ url: URL) {
         guard UserDefaults.standard.bool(forKey: DefaultsKey.clipboardLinkPreviews),
-              previews[url] == nil, !pending.contains(url), !failed.contains(url)
+              previews[url] == nil, !queue.contains(url), !failed.contains(url)
         else { return }
         if let stored = Self.readStored(url) {
             previews[url] = stored
             return
         }
-        guard pending.count < Self.concurrentFetches else { return }
-        pending.insert(url)
+        if queue.admit(url) { fetch(url) }
+    }
+
+    private func fetch(_ url: URL) {
         let provider = LPMetadataProvider()
         provider.timeout = 12
         // The store lives as long as the app, so the answer goes to it by name.
@@ -57,7 +60,8 @@ final class ClipboardLinkPreviewStore: ObservableObject {
     }
 
     private func finish(_ url: URL, title: String?, image: NSImage?) {
-        pending.remove(url)
+        // The next waiting link takes the place whatever this one gave.
+        defer { queue.finish(url).forEach(fetch) }
         let cleanTitle = title?.trimmingCharacters(in: .whitespacesAndNewlines)
         guard (cleanTitle?.isEmpty == false) || image != nil else {
             failed.insert(url)
@@ -113,6 +117,7 @@ final class ClipboardLinkPreviewStore: ObservableObject {
     func removeAll() {
         previews = [:]
         failed = []
+        queue.dropWaiting()
         if let directory = Self.directory { try? FileManager.default.removeItem(at: directory) }
     }
 }

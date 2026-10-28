@@ -598,6 +598,20 @@ enum ClipboardFeatureTests {
                 && ClipboardHistoryEntry(text: "https://example.com", kind: .files,
                                          filePaths: ["/tmp/a"]).linkURL == nil,
                "text around an address, other schemes and non-text entries are not links")
+        // Link previews fetch three at a time; the rest wait their turn, since
+        // a card asks only once, when it comes on screen.
+        var previewQueue = ClipboardLinkPreviewQueue(capacity: 3)
+        let previewLinks = (1...5).compactMap { URL(string: "https://example.com/\($0)") }
+        suite.expect(previewLinks.map { previewQueue.admit($0) } == [true, true, true, false, false]
+                && previewQueue.waiting == Array(previewLinks.suffix(2)),
+               "links past the limit wait in the order they were asked for")
+        suite.expect(!previewQueue.admit(previewLinks[0]) && !previewQueue.admit(previewLinks[4])
+                && previewQueue.waiting.count == 2,
+               "a link already running or waiting is not asked for twice")
+        suite.expect(previewQueue.finish(previewLinks[1]) == [previewLinks[3]]
+                && previewQueue.finish(previewLinks[0]) == [previewLinks[4]]
+                && previewQueue.finish(previewLinks[2]).isEmpty && previewQueue.waiting.isEmpty,
+               "each finished fetch starts the next waiting link")
         // The header takes an icon's vivid color, never its gray or white,
         // and stays dark enough for white text.
         func pixels(_ rgba: [(UInt8, UInt8, UInt8, UInt8)]) -> [UInt8] {
